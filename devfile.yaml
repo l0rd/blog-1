@@ -19,9 +19,9 @@ commands:
   - id: start-jekyll-server
     exec:
       component: jekyll
-      workingDir: ${PROJECTS_ROOT}/blog
       commandLine: |
-        jekyll serve --incremental --watch --host 0.0.0.0 --livereload --livereload-port 35729
+        jekyll serve --incremental --watch --host 0.0.0.0 --livereload --livereload-port 35729 --future
       group:
         kind: run
         isDefault: true
+ 
