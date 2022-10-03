@@ -108,7 +108,7 @@ oc adm policy add-cluster-role-to-user \
 
 == STEP 3: Grant privileges to developers accounts
 
-To avoid a privilege escalation, when provisioing the workspace Pod, the DevWorkspace controller checks that the developer is allowed to use the `container-buld` SCC. An administrator needs to grant such privilege to users with the following command:
+To avoid a privilege escalation, when provisioing the workspace Pod, the DevWorkspace controller checks that the developer is allowed to use the `container-buld` SCC. An administrator needs to grant such privileges. Here is an example of the comamnd to add the `container-build` SCC to the user `janedoe`:
 
 [source, bash]
 ----
@@ -119,7 +119,7 @@ If this step is skipped and the developer account is not allowed, Che will fail 
 
 == STEP 4: Include the `scc` attribute in Devfiles
 
-The last requirement to be able to build containers from an Eclispe Che workspace is to add the attribute `controller.devfile.io/scc: container-build` in the Devfile like in this example:
+The last requirement, to build containers from an Eclispe Che workspace, is adding the attribute `controller.devfile.io/scc: container-build` in the Devfile like in this example:
 
 [source, yaml]
 ----
@@ -128,6 +128,11 @@ metadata:
   name: build-test
 attributes:
   controller.devfile.io/scc: container-build
+projects:
+- name: dockerfile-hello-world
+  git:
+    remotes:
+      origin: https://github.com/l0rd/dockerfile-hello-world
 components:
 - name: devtooling-container
   container:
@@ -135,6 +140,23 @@ components:
     memoryLimit: 1Gi 
     cpuLimit: 1000m
 ----
+
+When the Devfile has that attribue then the workspace Pod has the annotation `openshift.io/scc: container-build`:
+
+[source, bash]
+----
+$ oc get pod workspace52aa1da24d244cef -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    openshift.io/scc: container-build
+(...)
+----
+
+And it's now possible to open a terminal and build a Dockerfile:
+
+image::assets/img/building-container-images/podman-build.gif[Running podman build]
 
 == What's next?
 
