@@ -12,11 +12,11 @@ slug: /@mloriedo/building-container-images
 image::/assets/img/building-container-images/che-inner-loop-optimized.png[Developer inner loop including a container build]
 {nbsp} +
 {nbsp} +
-Nowdays the typical developer flow, the inner-loop, includes quite often the build of a `Dockerfile`. Despite that Eclipse Che didn't support bulding container images on OpenShift. That's because it involved granting permissive OpenShift privileges to Che users and we didn't wanted to require that.
+Nowadays the typical developer flow, the inner-loop, includes quite often the build of a `Dockerfile`. Despite that Eclipse Che did not support building container images on OpenShift. That is because it involved granting permissive OpenShift privileges to Che users and we did not want to require that.
 
-The good new is that today there are a few options that allow building container images without compromising the underlying OpenShift cluster security. One of these is running in rootless mode and that's what we are going to discuss in this short blog post.
+The good news is that today a few options are available to build containers without compromising the underlying OpenShift cluster security. One of these is running in rootless mode and that is what we are going to discuss in this short blog post.
 
-Although it's now easy to link:https://github.com/containers/buildah/blob/main/docs/tutorials/05-openshift-rootless-build.md[run `buildah` or `podman build` in rootless mode], on OpenShift it requires the grant of some non-default link:https://man7.org/linux/man-pages/man7/capabilities.7.html[Linux capabilities]: `CAP_SETGID` and `CAP_SETUID`. It's possible to provide those capabilities to an Eclipse Che workspace following these steps:
+Although it's now easy to link:https://github.com/containers/buildah/blob/main/docs/tutorials/05-openshift-rootless-build.md[run `buildah` or `podman build` in rootless mode], on OpenShift it requires the grant of some non-default link:https://man7.org/linux/man-pages/man7/capabilities.7.html[Linux capabilities]: `CAP_SETGID` and `CAP_SETUID`. It is possible to provide those capabilities to an Eclipse Che workspace following these steps:
 
 1. <<step_1>>
 2. <<step_2>>
@@ -27,7 +27,7 @@ The first 3 steps setup the OpenShift cluster and Eclipse Che. These are adminis
 
 == STEP 1: Creating an OpenShift Security Context Constraint [[step_1]]
 
-In OpenShift, permissions for Pods are controlled with link:https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html[security context constraints (SCC)]. OpenShift comes with some pre-defined SCCs but the `restricted` SCC (the default one) doesn't provide enough capabilities and the `non-root` SCC provides more capabilities than required. To be able to build containers but avoid granting unrequired privileges we need to define an ad-hoc SCC that we call `container-build`. 
+In OpenShift, permissions for Pods are controlled with link:https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html[security context constraints (SCC)]. OpenShift includes some pre-defined SCCs but the `restricted` SCC (the default one) does not provide enough capabilities and the `non-root` SCC provides more capabilities than required. To be able to build containers but avoid granting unrequired privileges we need to define an ad-hoc SCC that we call `container-build`. 
 
 Use an admin account to create it on an OpenShift cluster with the following command:
 
@@ -77,9 +77,9 @@ EOF
 
 == STEP 2: Grant privileges to the DevWorkspace controller Service Account [[step_2]]
 
-The DevWorkspace controller provisions Che workspaces Pods and is run by the Service Account `system:serviceaccount:openshift-operators:devworkspace-controller-serviceaccount`. 
+The {devworkspace} controller provisions Che workspaces Pods and it uses Service Account `system:serviceaccount:openshift-operators:devworkspace-controller-serviceaccount`. 
 
-The following commands are required to grant `get` and `update` on the `container-build` SCC to that SA:
+Execute the following commands to grant to the Service Account `get` and `update` privileges on the `container-build` SCC:
 
 [source, bash]
 ----
@@ -109,18 +109,18 @@ oc adm policy add-cluster-role-to-user \
 
 == STEP 3: Grant privileges to developers accounts [[step_3]]
 
-To avoid a privilege escalation, when provisioing the workspace Pod, the DevWorkspace controller checks that the developer is allowed to use the `container-buld` SCC. An administrator needs to grant such privileges. Here is an example of the comamnd to add the `container-build` SCC to the user `janedoe`:
+To avoid a privilege escalation, when provisioning the workspace Pod, the {devworkspace} controller checks that the developer is allowed to use the `container-buld` SCC. An administrator needs to grant such privileges. Here is an example of the command to add the `container-build` SCC to the user `janedoe`:
 
 [source, bash]
 ----
 oc adm policy add-scc-to-user container-build janedoe
 ----
 
-If this step is skipped and the developer account is not allowed, Che will fail to start a workspace using the `conatiner-build` SCC.
+If this step is skipped, and the developer account is not allowed to use `CAP_SETGID` and `CAP_SETUID`, Che will fail to start a workspace using the `conatiner-build` SCC.
 
 == STEP 4: Include the `scc` attribute in Devfiles [[step_4]]
 
-The last requirement, to build containers from an Eclispe Che workspace, is adding the attribute `controller.devfile.io/scc: container-build` in the Devfile like in this example:
+The last requirement, to build containers from an Eclipse Che workspace, is adding the attribute `controller.devfile.io/scc: container-build` in the Devfile as in the following example:
 
 [source, yaml]
 ----
@@ -142,7 +142,7 @@ components:
     cpuLimit: 1000m
 ----
 
-When the Devfile has that attribue then the workspace Pod has the annotation `openshift.io/scc: container-build`:
+When this attribute is included in the Devfile, the resulting workspace Pod will have the annotation `openshift.io/scc: container-build`:
 
 [source, bash]
 ----
@@ -157,15 +157,17 @@ metadata:
 
 And it's now possible to open a terminal and build a Dockerfile:
 
-.Running podman build
-image::/assets/img/building-container-images/podman-build.gif[Running podman build]
+.Running Podman build
+image::/assets/img/building-container-images/podman-build.gif[Running Podman build]
 
-== What's next?
+== Current limitations and next steps
 
-Althought that 
+The first 3 steps mentioned in this post are manual and can be error prone. In next releases of Eclipse Che we want to add a CheCluster field that controls if Eclipse Che is capable to do container builds or not. When enabled, Eclipse Che Operator automatically applies <<step_1>>, <<step_2>> and <<step_3>>.
 
-- Fuse instead of VFS
-- `podman run`
-- `docker build`
-- User namespaces
-- Simplify the config: CheCluster fields to allow the build
+Step 4, <<step_4>>, should not be required. When containers build is enabled, every workspace Pod should have the required capabilities.
+
+The Universal Developer Image, the default image used in Che workspaces, uses Podman and Buildah with VFS file system. But, for better performances, `fuse-overlay` is recommended.
+
+The Universal Developer Image is also not configured to run Docker BuildKit in rootless mode and `docker build` doesn't work on OpenShift yet.
+
+Other than rootless mode, we are investigating the use of user namespaces in {orch-name} to build containers.
