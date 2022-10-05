@@ -1,16 +1,17 @@
 ---
-title: Building Container Images on OpenShift in Rootless Mode
+title: Building Containers in Rootless Mode on OpenShift
 layout: post
 author: Mario Loriedo
 description: >-
   In this blog post, we are going to see how to configure Eclispe Che to run `podman build` from a remote development environment.
 categories: []
-keywords: ['buildah', 'podman',]
+keywords: ['buildah', 'podman']
 slug: /@mloriedo/building-container-images
 ---
 
-:source-highlighter: highlight.js
-
+image::/assets/img/building-container-images/che-inner-loop-optimized.png[Developer inner loop including a container build]
+{nbsp} +
+{nbsp} +
 Nowdays the typical developer flow, the inner-loop, includes quite often the build of a `Dockerfile`. Despite that Eclipse Che didn't support bulding container images on OpenShift. That's because it involved granting permissive OpenShift privileges to Che users and we didn't wanted to require that.
 
 The good new is that today there are a few options that allow building container images without compromising the underlying OpenShift cluster security. One of these is running in rootless mode and that's what we are going to discuss in this short blog post.
