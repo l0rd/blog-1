@@ -4,7 +4,8 @@ metadata:
 components:
   - name: jekyll
     container:
-      image: quay.io/eclipse/che-blog:next
+      # image: quay.io/eclipse/che-blog:next
+      image: quay.io/mloriedo/che-blog:next
       memoryLimit: 4Gi
       endpoints:
         - exposure: public

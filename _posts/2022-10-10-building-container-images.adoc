@@ -12,6 +12,9 @@ slug: /@mloriedo/building-container-images
 image::/assets/img/building-container-images/che-inner-loop-optimized.png[Developer inner loop including a container build]
 {nbsp} +
 {nbsp} +
+
+IMPORTANT: The following article applies to earlier versions of Eclipse Che. Administrators currently can enable container build capabilities setting link:https://www.eclipse.org/che/docs/stable/administration-guide/checluster-custom-resource-fields-reference/#checluster-custom-resource-devEnvironments-settings[CheCluster devEnvironments.disableContainerBuildCapabilities] to false.
+
 Nowadays the typical developer flow, the inner-loop, quite often includes the building of a `Dockerfile`. Despite that Eclipse Che did not support building container images on OpenShift. That is because it involved granting permissive OpenShift privileges to Che users and we did not want to require that.
 
 The good news is that today a few options are available to build containers without compromising the underlying OpenShift cluster security. One of these is running in rootless mode and that is what we are going to discuss in this short blog post.
