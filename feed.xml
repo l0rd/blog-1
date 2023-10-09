@@ -1,0 +1,2422 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.2">Jekyll</generator><link href="https://che.eclipseprojects.io/feed.xml" rel="self" type="application/atom+xml" /><link href="https://che.eclipseprojects.io/" rel="alternate" type="text/html" /><updated>2023-10-09T09:33:42+00:00</updated><id>https://che.eclipseprojects.io/feed.xml</id><title type="html">Eclipse Che Blog</title><subtitle>Eclipse Che runs IDEs in Kubernetes.</subtitle><entry><title type="html">Decommissioning the PostgreSQL database</title><link href="https://che.eclipseprojects.io/2023/03/20/@ilya.buziuk-decommissioning-postgresql-database.html" rel="alternate" type="text/html" title="Decommissioning the PostgreSQL database" /><published>2023-03-20T00:00:00+00:00</published><updated>2023-03-20T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2023/03/20/@ilya.buziuk/decommissioning-postgresql-database</id><content type="html" xml:base="https://che.eclipseprojects.io/2023/03/20/@ilya.buziuk-decommissioning-postgresql-database.html"><![CDATA[<div class="paragraph">
+<p>Historically Eclipse&#160;Che used a PostgreSQL database for storing relevant information about the users, workspaces, devfiles, preferences, SSH keys, etc.
+Overall there were dozens of tables in the database which represent the state of the Eclipse&#160;Che instance:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="bash">psql <span style="color: #f92672;font-weight: bold">(</span>13.7<span style="color: #f92672;font-weight: bold">)</span>
+Type <span style="color: #e6db74">"help"</span> <span style="color: #66d9ef;font-weight: bold">for </span>help.
+
+<span style="color: #f8f8f2">dbche</span><span style="color: #f92672;font-weight: bold">=&gt;</span> <span style="color: #ae81ff">\d</span>t
+                            List of relations
+ Schema |                      Name                       | Type  | Owner
+<span style="color: #f92672">--------</span>+-------------------------------------------------+-------+-------
+ public | account                                         | table | pgche
+ public | che_factory                                     | table | pgche
+ public | che_factory_action                              | table | pgche
+ public | che_factory_action_properties                   | table | pgche
+ public | che_factory_ide                                 | table | pgche
+ public | che_factory_on_app_closed_action                | table | pgche
+ public | che_factory_on_app_closed_action_value          | table | pgche
+ public | che_factory_on_app_loaded_action                | table | pgche
+ public | che_factory_on_app_loaded_action_value          | table | pgche
+ public | che_factory_on_projects_loaded_action           | table | pgche
+ public | che_factory_on_projects_loaded_action_value     | table | pgche
+ public | che_free_resources_limit                        | table | pgche
+ public | che_free_resources_limit_resource               | table | pgche
+ public | che_k8s_machine                                 | table | pgche
+ public | che_k8s_machine_attributes                      | table | pgche
+ public | che_k8s_runtime                                 | table | pgche
+ public | che_k8s_server                                  | table | pgche
+ public | che_k8s_server_attributes                       | table | pgche
+ public | che_member                                      | table | pgche
+ public | che_member_actions                              | table | pgche
+ public | che_organization                                | table | pgche
+ public | che_organization_distributed_resources          | table | pgche
+ public | che_organization_distributed_resources_resource | table | pgche
+ public | che_resource                                    | table | pgche
+ public | che_sign_key                                    | table | pgche
+ public | che_sign_key_pair                               | table | pgche
+ public | che_system_permissions                          | table | pgche
+ public | che_system_permissions_actions                  | table | pgche
+ public | che_userdevfile_permissions                     | table | pgche
+ public | che_userdevfile_permissions_actions             | table | pgche
+ public | che_worker                                      | table | pgche
+ public | che_worker_actions                              | table | pgche
+ public | che_workspace_activity                          | table | pgche
+ public | che_workspace_cfg_attributes                    | table | pgche
+ public | <span style="color: #f8f8f2">command</span>                                         | table | pgche
+ public | command_attributes                              | table | pgche
+ public | devfile                                         | table | pgche
+ public | devfile_action                                  | table | pgche
+ public | devfile_attributes                              | table | pgche
+ public | devfile_command                                 | table | pgche
+ public | devfile_command_attributes                      | table | pgche
+ public | devfile_component                               | table | pgche
+ public | devfile_component_arg                           | table | pgche
+ public | devfile_component_command                       | table | pgche
+ public | devfile_component_preferences                   | table | pgche
+ public | devfile_component_selector                      | table | pgche
+ public | devfile_endpoint                                | table | pgche
+ public | devfile_endpoint_attributes                     | table | pgche
+ public | devfile_entrypoint                              | table | pgche
+ public | devfile_entrypoint_arg                          | table | pgche
+ public | devfile_entrypoint_commands                     | table | pgche
+ public | devfile_entrypoint_selector                     | table | pgche
+ public | devfile_env                                     | table | pgche
+ public | devfile_project                                 | table | pgche
+ public | devfile_volume                                  | table | pgche
+ public | environment                                     | table | pgche
+ public | externalmachine                                 | table | pgche
+ public | externalmachine_attributes                      | table | pgche
+ public | externalmachine_env                             | table | pgche
+ public | k8s_runtime_command                             | table | pgche
+ public | k8s_runtime_command_attributes                  | table | pgche
+ public | machine_volume                                  | table | pgche
+ public | preference                                      | table | pgche
+ public | preference_preferences                          | table | pgche
+ public | profile                                         | table | pgche
+ public | profile_attributes                              | table | pgche
+ public | projectattribute                                | table | pgche
+ public | projectattribute_values                         | table | pgche
+ public | projectconfig                                   | table | pgche
+ public | projectconfig_mixins                            | table | pgche
+ public | schema_version                                  | table | pgche
+ public | sequence                                        | table | pgche
+ public | serverconf                                      | table | pgche
+ public | serverconf_attributes                           | table | pgche
+ public | serverconf_properties                           | table | pgche
+ public | sourcestorage                                   | table | pgche
+ public | sourcestorage_parameters                        | table | pgche
+ public | sshkeypair                                      | table | pgche
+ public | user_aliases                                    | table | pgche
+ public | userdevfile                                     | table | pgche
+ public | usr                                             | table | pgche
+ public | workspace                                       | table | pgche
+ public | workspace_attributes                            | table | pgche
+ public | workspaceconfig                                 | table | pgche
+<span style="color: #f92672;font-weight: bold">(</span>84 rows<span style="color: #f92672;font-weight: bold">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>However, with the switch to <a href="https://che.eclipseprojects.io/2021/10/12/@mario.loriedo-devfile-v2-and-the-devworkspace-operator-p1.html">DevWorkspace Operator and Devfile v2</a>, all this data becomes irrelevant since we started using native Kubernetes resources instead.</p>
+</div>
+<div class="paragraph">
+<p>The data is now stored and managed as Kubernetes resources such as Secrets and ConfigMaps in the user namespaces:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/decommissioning-postgresql-database/secrets.png" alt="Secrets from the user namespace">
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/decommissioning-postgresql-database/configmaps.png" alt="ConfigMaps from the user namespace">
+</div>
+</div>
+<div class="paragraph">
+<p>&#160;<br></p>
+</div>
+<div class="paragraph">
+<p>As an example, SSH keys are now configured using the dedicated <a href="https://github.com/devfile/devworkspace-operator/blob/main/docs/additional-configuration.adoc#configuring-devworkspaces-to-use-ssh-keys-for-git-operations">secret</a>.</p>
+</div>
+<div class="paragraph">
+<p>Starting from the Eclipse&#160;Che <code>7.62.0</code> release, the PostgreSQL deployment has ceased to exist, resulting in only 5 operands: Che Server, User Dashboard, Plugin Registry, Devfile Registry, and Gateway.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/decommissioning-postgresql-database/operands.png" alt="Eclipse Che operands">
+</div>
+</div>
+<div class="paragraph">
+<p>&#160;<br></p>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+No manual migration steps or action items are required for this change to take effect. The PostgreSQL deployment will be gracefully terminated and removed during the update. All the obsolete data stored in the database will be removed.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>It is also worth mentioning that most of the <code><a href="https://&lt;che_fqdn&gt;/swagger" class="bare">https://&lt;che_fqdn&gt;/swagger</a></code> endpoints are now deprecated and going to be removed in future releases. The only endpoints that are still used are related to the namespace provisioning, Git OAuth configuration, and the factory flow:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>/kubernetes/namespace/*</code></p>
+</li>
+<li>
+<p><code>/oauth/*</code></p>
+</li>
+<li>
+<p><code>/factory/*</code></p>
+</li>
+</ul>
+</div>
+<div class="sect1">
+<h2 id="_next-steps">Next steps</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Decommissioning the PostgreSQL database in favor of native Kubernetes resources provides several benefits, including: improved scalability, flexibility, and easier management.</p>
+</div>
+<div class="paragraph">
+<p>Ultimately, moving away from traditional database architectures and embracing Kubernetes makes Eclipse&#160;Che agile and competitive in an increasingly complex and demanding technology landscape.
+For example, in the next Eclipse&#160;Che releases we plan to make it possible to configure a number of replicas for operands from the CheCluster CustomResource, which was not possible before due to the PostgreSQL database dependency:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">spec</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">components</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">cheServer</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">deployment</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">replicas</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #ae81ff">1</span>
+    <span style="color: #a6e22e">dashboard</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">deployment</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">replicas</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #ae81ff">1</span>
+    <span style="color: #a6e22e">devfileRegistry</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">deployment</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">replicas</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #ae81ff">1</span>
+    <span style="color: #a6e22e">pluginRegistry</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">deployment</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">replicas</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">1</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The progress of this particular feature can be tracked in the upstream <a href="https://github.com/eclipse/che/issues/22067">issue</a>.
+As always, we look forward to your valuable feedback, comments, remarks, and proposals on this work or anything else related to the project, through our <a href="https://accounts.eclipse.org/mailing-list/che-dev">mailing list</a>, <a href="https://github.com/eclipse/che/issues">GitHub</a>, or <a href="https://mattermost.eclipse.org/eclipse/channels/eclipse-che">Mattermost</a>.
+&#160;<br>
+We wish you an enjoyable and productive coding experience with Eclipse&#160;Che!</p>
+</div>
+</div>
+</div>]]></content><author><name>Ilya Buziuk</name></author><summary type="html"><![CDATA[The article describes how the PostgreSQL database dependency has been removed in Eclipse Che]]></summary></entry><entry><title type="html">Building Containers in Rootless Mode on OpenShift</title><link href="https://che.eclipseprojects.io/2022/10/10/@mloriedo-building-container-images.html" rel="alternate" type="text/html" title="Building Containers in Rootless Mode on OpenShift" /><published>2022-10-10T00:00:00+00:00</published><updated>2022-10-10T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2022/10/10/@mloriedo/building-container-images</id><content type="html" xml:base="https://che.eclipseprojects.io/2022/10/10/@mloriedo-building-container-images.html"><![CDATA[<div class="imageblock">
+<div class="content">
+<img src="/assets/img/building-container-images/che-inner-loop-optimized.png" alt="Developer inner loop including a container build">
+</div>
+</div>
+<div class="paragraph">
+<p>&#160;<br>
+&#160;<br>
+Nowadays the typical developer flow, the inner-loop, quite often includes the building of a <code>Dockerfile</code>. Despite that Eclipse Che did not support building container images on OpenShift. That is because it involved granting permissive OpenShift privileges to Che users and we did not want to require that.</p>
+</div>
+<div class="paragraph">
+<p>The good news is that today a few options are available to build containers without compromising the underlying OpenShift cluster security. One of these is running in rootless mode and that is what we are going to discuss in this short blog post.</p>
+</div>
+<div class="paragraph">
+<p>Although it&#8217;s now easy to <a href="https://github.com/containers/buildah/blob/main/docs/tutorials/05-openshift-rootless-build.md">run <code>buildah</code> or <code>podman build</code> in rootless mode</a>, on OpenShift it requires granting some non-default <a href="https://man7.org/linux/man-pages/man7/capabilities.7.html">Linux capabilities</a>: <code>CAP_SETGID</code> and <code>CAP_SETUID</code>. It is possible to provide those capabilities to an Eclipse Che workspace following these steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p><a href="#step_1">STEP 1: Creating an OpenShift Security Context Constraint</a></p>
+</li>
+<li>
+<p><a href="#step_2">STEP 2: Grant privileges to the DevWorkspace controller Service Account</a></p>
+</li>
+<li>
+<p><a href="#step_3">STEP 3: Grant privileges to developer accounts</a></p>
+</li>
+<li>
+<p><a href="#step_4">STEP 4: Include the <code>scc</code> attribute in Devfiles</a></p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>The first 3 steps setup the OpenShift cluster and Eclipse Che. These are administration tasks. The last step is for users that start a workspace: every workspace that requires the <code>CAP_SETGID</code> and <code>CAP_SETUID</code> capability needs that Devfile attribute.</p>
+</div>
+<div class="sect1">
+<h2 id="step_1">STEP 1: Creating an OpenShift Security Context Constraint</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In OpenShift, permissions for Pods are controlled with <a href="https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html">security context constraints (SCC)</a>. OpenShift includes some pre-defined SCCs but the <code>restricted</code> SCC (the default one) does not provide enough capabilities and the <code>non-root</code> SCC provides more capabilities than required. To be able to build containers but avoid granting unrequired privileges we need to define an ad-hoc SCC that we call <code>container-build</code>.</p>
+</div>
+<div class="paragraph">
+<p>Use an admin account to create it on an OpenShift cluster with the following command:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="bash">kubectl apply <span style="color: #f92672">-f</span> - <span style="color: #f92672;font-weight: bold">&lt;&lt;</span><span style="color: #66d9ef">EOF</span><span style="color: #e6db74">
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: container-build
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: false
+allowedCapabilities:
+  - SETUID
+  - SETGID
+defaultAddCapabilities: null
+fsGroup:
+  type: MustRunAs
+# Temporary workaround for https://github.com/devfile/devworkspace-operator/issues/884
+priority: 20
+readOnlyRootFilesystem: false
+requiredDropCapabilities:
+  - KILL
+  - MKNOD
+runAsUser:
+  type: MustRunAsRange
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+users: []
+groups: []
+volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - persistentVolumeClaim
+  - projected
+  - secret
+EOF</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="step_2">STEP 2: Grant privileges to the DevWorkspace controller Service Account</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The DevWorkspace controller provisions Che workspaces Pods and it uses Service Account <code>system:serviceaccount:openshift-operators:devworkspace-controller-serviceaccount</code>.</p>
+</div>
+<div class="paragraph">
+<p>Execute the following commands to grant <code>get</code> and <code>update</code> privileges for the <code>container-build</code> SCC to the Service Account :</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="bash"><span style="color: #75715e;font-style: italic"># Create the cluster role get-n-update-container-build-scc</span>
+kubectl apply <span style="color: #f92672">-f</span> - <span style="color: #f92672;font-weight: bold">&lt;&lt;</span><span style="color: #66d9ef">EOF</span><span style="color: #e6db74">
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: get-n-update-container-build-scc
+rules:
+- apiGroups:
+  - "security.openshift.io"
+  resources:
+  - "securitycontextconstraints"
+  resourceNames:
+  - "container-build"
+  verbs:
+  - "get"
+  - "update"
+</span><span style="color: #66d9ef">EOF
+
+</span><span style="color: #75715e;font-style: italic"># Add the role to the DevWorkspace controller Service Account</span>
+oc adm policy add-cluster-role-to-user <span style="color: #ae81ff">\</span>
+       get-n-update-container-build-scc <span style="color: #ae81ff">\</span>
+       system:serviceaccount:openshift-operators:devworkspace-controller-serviceaccount</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="step_3">STEP 3: Grant privileges to developer accounts</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To avoid a privilege escalation, when provisioning the workspace Pod, the DevWorkspace controller checks that the developer is allowed to use the <code>container-build</code> SCC. An administrator needs to grant such privileges. Here is an example of the command to add the <code>container-build</code> SCC to the user <code>janedoe</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="bash">oc adm policy add-scc-to-user container-build janedoe</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If this step is skipped, and the developer account is not allowed to use <code>CAP_SETGID</code> and <code>CAP_SETUID</code>, Che will fail to start a workspace using the <code>container-build</code> SCC.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="step_4">STEP 4: Include the <code>scc</code> attribute in Devfiles</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The last requirement to build containers from an Eclipse Che workspace, is adding the <code>controller.devfile.io/scc: container-build</code> attribute in the Devfile as in the following example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">schemaVersion</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">2.1.0</span>
+<span style="color: #a6e22e">metadata</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">name</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">build-test</span>
+<span style="color: #a6e22e">attributes</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">controller.devfile.io/scc</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">container-build</span>
+<span style="color: #a6e22e">projects</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+<span style="color: #f8f8f2;background-color: #49483e">-</span> <span style="color: #a6e22e">name</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">dockerfile-hello-world</span>
+  <span style="color: #a6e22e">git</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">remotes</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">origin</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">https://github.com/l0rd/dockerfile-hello-world</span>
+<span style="color: #a6e22e">components</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+<span style="color: #f8f8f2;background-color: #49483e">-</span> <span style="color: #a6e22e">name</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">devtooling-container</span>
+  <span style="color: #a6e22e">container</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">image</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">quay.io/devspaces/udi-rhel8:next</span>
+    <span style="color: #a6e22e">memoryLimit</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">1Gi</span>
+    <span style="color: #a6e22e">cpuLimit</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">1000m</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When this attribute is included in the Devfile, the resulting workspace Pod will have the <code>openshift.io/scc: container-build</code> annotation:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="bash"><span style="color: #f8f8f2">$ </span>oc get pod workspace52aa1da24d244cef <span style="color: #f92672">-o</span> yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    openshift.io/scc: container-build
+<span style="color: #f92672;font-weight: bold">(</span>...<span style="color: #f92672;font-weight: bold">)</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And it&#8217;s now possible to open a terminal and build a Dockerfile:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/building-container-images/podman-build.gif" alt="Running Podman build">
+</div>
+<div class="title">Figure 1. Running Podman build</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_current-limitations-and-next-steps">Current limitations and next steps</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The first 3 steps mentioned in this post are manual and can be error-prone. In the next releases of Eclipse Che, we want to add a CheCluster field that controls if Eclipse Che is capable of building containers or not. When enabled, Eclipse Che Operator automatically applies <a href="#step_1">STEP 1: Creating an OpenShift Security Context Constraint</a>, <a href="#step_2">STEP 2: Grant privileges to the DevWorkspace controller Service Account</a> and <a href="#step_3">STEP 3: Grant privileges to developer accounts</a>.</p>
+</div>
+<div class="paragraph">
+<p>Step 4, <a href="#step_4">STEP 4: Include the <code>scc</code> attribute in Devfiles</a>, should not be required. When container build is enabled, every workspace Pod should have the required capabilities.</p>
+</div>
+<div class="paragraph">
+<p>The Universal Developer Image, the default image used in Che workspaces, uses Podman and Buildah with a VFS file system. But for better performance, <code>fuse-overlay</code> is recommended.</p>
+</div>
+<div class="paragraph">
+<p>The Universal Developer Image is also not configured to run Docker BuildKit in rootless mode and <code>docker build</code> doesn&#8217;t work on OpenShift yet.</p>
+</div>
+<div class="paragraph">
+<p>Other than rootless mode, we are investigating the use of user namespaces in Kubernetes to build containers.</p>
+</div>
+</div>
+</div>]]></content><author><name>Mario Loriedo</name></author><summary type="html"><![CDATA[In this blog post, we are going to see how to configure Eclispe Che to run `podman build` from a remote development environment.]]></summary></entry><entry><title type="html">Installing Eclipse Che on the Azure Kubernetes Service (AKS)</title><link href="https://che.eclipseprojects.io/2022/07/25/@karatkep-installing-eclipse-che-on-aks.html" rel="alternate" type="text/html" title="Installing Eclipse Che on the Azure Kubernetes Service (AKS)" /><published>2022-07-25T00:00:00+00:00</published><updated>2022-07-25T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2022/07/25/@karatkep/installing-eclipse-che-on-aks</id><content type="html" xml:base="https://che.eclipseprojects.io/2022/07/25/@karatkep-installing-eclipse-che-on-aks.html"><![CDATA[<div class="paragraph">
+<p>We installed Eclipse&#160;Che on AKS (Azure Kubernetes Service) cluster integrated with AAD (Azure Active Directory) according to <a href="https://www.eclipse.org/che/docs/che-7/installation-guide/installing-che-on-microsoft-azure/">these old (7.41) instructions</a> (there is no recent version of AKS installation documentation). And to our surprise it did not work. Here at Epam Systems we love complex challenges, so we decided not to stop and deep dived into Eclipse&#160;Che world to improve interaction with Microsoft Azure.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Taking into account that Eclipse&#160;Che calls Kubernetes API server using user&#8217;s identity tokens generated by Identity Provider, AKS needs to be integrated with AAD, otherwise AKS will reject the token. Details how to integrate AKS with AAD can be found <a href="https://docs.microsoft.com/en-us/azure/aks/managed-aad">here</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Architecture diagram below can be used to get a context about our case. Please note that some of the components are omitted for the sake of simplicity. But it should be enough to get up to speed and dive into Eclipse&#160;Che world together with us.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/installing-eclipse-che-on-aks/che-in-aks.png" alt="Eclipse Che components deployed on AKS">
+</div>
+<div class="title">Figure 1. Eclipse Che components deployed on AKS</div>
+</div>
+<div class="sect1">
+<h2 id="_challenge-1-aks-does-not-accept-id_token">Challenge 1: AKS does not accept <code>id_token</code></h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><a href="https://oauth2-proxy.github.io/oauth2-proxy/">OAuth2 Proxy</a> is configured to send an <code>id_token</code> to Traefik for installations made for Kubernetes. <a href="https://traefik.io/traefik/">Traefik</a>, in turn, sends the <code>id_token</code> to all upstream services, including components such as Che server and User Dashboard. Che server and User Dashboard call AKS API Server using the provided <code>id_token</code>. But when AKS is configured to use AAD, its API Server does not accept <code>id_token</code> (it only accepts <code>access_token</code>).</p>
+</div>
+<div class="sect2">
+<h3 id="_how-did-we-solve-the-first-challenge">How did we solve the first challenge</h3>
+<div class="paragraph">
+<p>We need a way to ask OAuth2 Proxy to send an <code>access_token</code> instead of an <code>id_token</code>. Token replacement is a OAuth2 Proxy alpha feature, hence it cannot be used in production. The alternative is to configure it to pass <code>access_token</code> via X-Forwarded-Access-Token header, but the <code>id_token</code> in the Authorization header won&#8217;t be replaced. So, first step is to add <code>access_token</code> via X-Forwarded-Access-Token header:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code>pass_access_token = true</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Then we need somehow to replace Authorization header on X-Forwarded-Access-Token header. Fortunately, we have Traefik in place. So, let&#8217;s ask Traefik to make a necessary replacement:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">http</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">middlewares</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">che-header-rewrite</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">plugin</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">header-rewrite</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+          <span style="color: #a6e22e">from</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">X-Forwarded-Access-Token</span>
+          <span style="color: #a6e22e">prefix</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">'</span><span style="color: #e6db74">Bearer</span><span style="color: #f8f8f2"> </span><span style="color: #e6db74">'</span>
+          <span style="color: #a6e22e">to</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">Authorization</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>And voila, we made it work, like magic. But how can we make it usable for other users who wants to install Eclipse&#160;Che on AKS? We already mentioned, that at Epam Systems we love complex challenges. And of course we love coding. So, we opened the <a href="https://github.com/eclipse/che/issues/21450">che-operator enhancements</a> and proposed the <a href="https://github.com/eclipse-che/che-operator/pull/1400">improvements</a>.</p>
+</div>
+<div class="paragraph">
+<p>As a consequence of the proposed improvements, a new configuration field <code>identityToken</code> has been introduced into Eclipse&#160;Che starting from version 7.50. A Eclipse&#160;Che administrator can easily configure what token will be passed to upstream servicees in CheCluster CR (Custom Resource):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">spec</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">networking</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">auth</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">identityToken</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">access_token</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There are two types of token supported: <code>id_token</code> and <code>access_token</code>. Default value is <code>id_token</code>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The field <code>identityToken</code> is specific to Eclipse&#160;Che installations made for Kubernetes only and ignored for OpenShift.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_challenge-2-no-way-to-obtain-a-proper-access-token-accepted-by-aks">Challenge 2: No way to obtain a proper access token accepted by AKS</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This is a follow up of Challenge 1: after configuring Eclipse&#160;Che to pass an <code>access_token</code> instead of an <code>id_token</code> we need to make sure that AKS considers it valid.</p>
+</div>
+<div class="paragraph">
+<p>When AKS integration with AAD is enabled, AKS expects OpenID Connect (OIDC) tokens to be issued from an application, pre-registered in AAD: 'Azure Kubernetes Service AAD Server'.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/installing-eclipse-che-on-aks/aks-aad-server-app.png" alt="Azure Kubernetes Service AAD Server">
+</div>
+<div class="title">Figure 2. Azure Kubernetes Service AAD Server application</div>
+</div>
+<div class="paragraph">
+<p>Eclipse&#160;Che Gateway OAuth2 Proxy with the default settings uses a standard set of OIDC scopes and AAD will return an <code>access_token</code> that can be used against Microsoft Graph but not against AKS.</p>
+</div>
+<div class="paragraph">
+<p>In order to return a token that will be accepted by AKS, OAuth2 Proxy should be configured with an additional OIDC scope, representing Azure Kubernetes Service AAD Server application:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #e6db74">6dae42f8-4368-4678-94ff-3960e28e3630/user.read</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>where the ID is the Application ID of the AKS instance registered in AAD.</p>
+</div>
+<div class="sect2">
+<h3 id="_how-did-we-solve-the-second-challenge">How did we solve the second challenge</h3>
+<div class="paragraph">
+<p>A new configuration field named <code>oAuthScope</code> has been introduced into Eclipse&#160;Che starting from version 7.50. That has been specified by the already opened <a href="https://github.com/eclipse/che/issues/21450">che-operator enhancements</a> and implemented through the provided <a href="https://github.com/eclipse-che/che-operator/pull/1400">improvement</a>. An Eclipse&#160;Che administrator can easily configure authorization scopes in CheCluster CR:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">spec</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">networking</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">auth</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">oAuthScope</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">openid email profile 6dae42f8-4368-4678-94ff-3960e28e3630/user.read</span></code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The field <code>oAuthScope</code> is specific to Eclipse&#160;Che installations made for Kubernetes only and ignored for OpenShift.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_challenge-3-che-server-requires-mandatory-email-claim-which-is-absent-in-aks-access_token">Challenge 3: Che server requires mandatory 'email' claim which is absent in AKS access_token</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Besides passing OIDC token to AKS for authorization purposes, Che server also uses it for creating a 'user' record in PostgreSQL database. There are two pieces of information (claims) about current user that Che server expects to extract from the token: name and email. Che allows configuring of user name claim via CheCluster CR in AKS (<code>CHE_OIDC_USERNAME__CLAIM</code> according to <a href="https://www.eclipse.org/che/docs/next/administration-guide/advanced-configuration-options-for-the-che-server-component/#_che_oidc_username_claim">documentation</a>), but email claim name is hardcoded to <code>email</code> and cannot be changed. This hardcode becomes a problem for AKS setup since <code>access_token</code> returned by AAD for AKS does not contain <code>email</code> claim (see current structure below), and customization is not possible here since AKS application registration in AAD is maintained by Microsoft.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="jwt">{
+  "typ": "JWT",
+  "alg": "RS256",
+  "x5t": "2ZQpJ3UpbjAYXYGaXEJl8lV0TOI",
+  "kid": "2ZQpJ3UpbjAYXYGaXEJl8lV0TOI"
+}.{
+  "aud": "6dae42f8-4368-4678-94ff-3960e28e3630",
+  "iss": "https://sts.windows.net/f974903a-f693-4ca2-aa63-45e5bd2d1318/",
+  "iat": 1656412511,
+  "nbf": 1656412511,
+  "exp": 1656417802,
+  "acr": "1",
+  "aio": "AUQAu/8TAABB1o0F/h6L8SJWLibrQqPKrVF7qpdIFiQ0qeIj/wNUfcLkM87v+wgvQ+I8uj0WC2Y6WEoHlBcsJdt0m+kJ4dFeNw==",
+  "amr": [
+    "pwd"
+  ],
+  "appid": "1c0b88a0-8ec2-4cca-a2b0-4f468110ef86",
+  "appidacr": "1",
+  "family_name": "Kluklu",
+  "given_name": "Tratata",
+  "groups": [
+    "73fdccdf-e10d-45f9-b7f6-31848842999f",
+    "5988d043-3af9-4e81-b041-90b3456f9f4e",
+    "bddcb049-0337-4dec-bbaf-7600b8c12623"
+  ],
+  "ipaddr": "10.123.51.3",
+  "name": "Tratata Kluklu",
+  "oid": "2cf0521c-c76d-4e7c-b41f-863674057db3",
+  "onprem_sid": "S-2-4-31-6364504-298352422-13854118-387761",
+  "puid": "3213CDFA3CAF2IA5",
+  "rh": "0.AQkA1NIbtJ39JkuKaqbJ82fCHscCrm1oG3hTlP47YOQHDjAJAHg.",
+  "scp": "user.read",
+  "sub": "qweBLvHX49QA5WlXpJzq_erXQ2NldnSqpgY93oALLDY",
+  "tid": "a385e78a-aedc-4033-82ba-e6ef88120591",
+  "unique_name": "Tratata.Kluklu@gmail.com",
+  "upn": "Tratata.Kluklu@gmail.com",
+  "uti": "lfZmPsgcWmS3dG78GpMjRA",
+  "ver": "1.0",
+  "wids": [
+    "c79abafb-610b-4a34-82e2-ef7a293db6ca"
+  ]
+}.[Signature]</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_how-did-we-solve-the-third-challenge">How did we solve the third challenge</h3>
+<div class="paragraph">
+<p>As for the previous challenges, we need some enhancements on Eclipse&#160;Che side here too. We want to allow administrators to configure what token claim need to be used to extract user email. As we did it before, we opened the <a href="https://github.com/eclipse/che/issues/21515">che-server enhancement</a> and proposed the <a href="https://github.com/eclipse-che/che-server/pull/324">improvement</a>.</p>
+</div>
+<div class="paragraph">
+<p>Now Eclipse&#160;Che adminstrators can configure the email claim to be used when parsing the JWT token:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">spec</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">components</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">cheServer</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">extraProperties</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">CHE_OIDC_EMAIL__CLAIM</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">unique_name</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If not defined, the fallback value is <code>email</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_conclusion">Conclusion</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In this post, we walked through the challenges we faced to install Eclipse&#160;Che on AKS and how we contributed back to the project to address the issues.</p>
+</div>
+<div class="paragraph">
+<p>Now, user has all needed things configurable to be able to run successfully Eclipse&#160;Che on AKS. For example, in our particular case we prepared yaml file that overrides the default values in CheCluster CR.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">spec</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">networking</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">auth</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">identityProviderURL</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">https://sts.windows.net/{TENANT_ID}/v2.0/</span>
+      <span style="color: #a6e22e">identityToken</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">access_token</span>
+      <span style="color: #a6e22e">oAuthClientName</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #f8f8f2;background-color: #49483e">{</span><span style="color: #f8f8f2">CLIENT_ID</span><span style="color: #f8f8f2;background-color: #49483e">}</span>
+      <span style="color: #a6e22e">oAuthSecret</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #f8f8f2;background-color: #49483e">{</span><span style="color: #f8f8f2">CLIENT_SECRET</span><span style="color: #f8f8f2;background-color: #49483e">}</span>
+      <span style="color: #a6e22e">oAuthScope</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">openid email profile 6dae42f8-4368-4678-94ff-3960e28e3630/user.read</span>
+  <span style="color: #a6e22e">components</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">cheServer</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">extraProperties</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+        <span style="color: #a6e22e">CHE_OIDC_AUTH__SERVER__URL</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">https://sts.windows.net/{TENANT_ID}/v2.0/</span>
+        <span style="color: #a6e22e">CHE_OIDC_EMAIL__CLAIM</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">unique_name</span></code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>TENANT_ID</code> - Directory (tenant) ID, see Figure 3.</p>
+</li>
+<li>
+<p><code>CLIENT_ID</code> - Application (client) ID, see Figure 3.</p>
+</li>
+<li>
+<p><code>CLIENT_SECRET</code> - Client secret, you can manage it in 'Certificates &amp; secret' section</p>
+</li>
+</ul>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/installing-eclipse-che-on-aks/azure-che-demo-app.png" alt="Registered Che application">
+</div>
+<div class="title">Figure 3. Registered Che application</div>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Don&#8217;t forget to configure API permissions to authorize your application to call AKS Server API.
+</td>
+</tr>
+</table>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/installing-eclipse-che-on-aks/aks-api-permissions.png" alt="AKS API permissions">
+</div>
+<div class="title">Figure 4. AKS API permissions</div>
+</div>
+<div class="paragraph">
+<p>After the Eclipse&#160;Che App configuration in Azure is completed, the command <code>chectl server:deploy</code> can be used to install Eclipse&#160;Che on AKS using the <code>YAML</code> file above:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="shell">chectl server:deploy <span style="color: #ae81ff">\</span>
+       <span style="color: #f92672">--platform</span><span style="color: #f92672;font-weight: bold">=</span>k8s <span style="color: #ae81ff">\</span>
+       <span style="color: #f92672">--installer</span><span style="color: #f92672;font-weight: bold">=</span>operator <span style="color: #ae81ff">\</span>
+       <span style="color: #f92672">--che-operator-cr-patch-yaml</span><span style="color: #f92672;font-weight: bold">=</span>che.yaml <span style="color: #ae81ff">\</span>
+       <span style="color: #f92672">--skip-oidc-provider-check</span> <span style="color: #ae81ff">\</span>
+       <span style="color: #f92672">--skip-cert-manager</span> <span style="color: #ae81ff">\</span>
+       <span style="color: #f92672">--domain</span><span style="color: #f92672;font-weight: bold">=</span>eclipse-che-demo.mydomain.com</code></pre>
+</div>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+In our case we already configured <code>cert-manager</code> and created <code>domain</code> according to the <a href="https://www.eclipse.org/che/docs/che-7/installation-guide/installing-che-on-microsoft-azure/">old (7.41) instructions</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>]]></content><author><name>Serguei Gorokhov and Piotr Karatkevich</name></author><summary type="html"><![CDATA[In this blog post, we'll tell the story how we installed Eclipse Che on Microsoft Azure, what challenges we met and how solved them.]]></summary></entry><entry><title type="html">Pair programming using VS Code</title><link href="https://che.eclipseprojects.io/2022/04/01/@florent.benoit-pair-programming-using-vscode-editor.html" rel="alternate" type="text/html" title="Pair programming using VS Code" /><published>2022-04-01T00:00:00+00:00</published><updated>2022-04-01T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2022/04/01/@florent.benoit/pair-programming-using-vscode-editor</id><content type="html" xml:base="https://che.eclipseprojects.io/2022/04/01/@florent.benoit-pair-programming-using-vscode-editor.html"><![CDATA[<div class="paragraph">
+<p>One of Eclipse Che most requested feature is to be able to do pair programming.</p>
+</div>
+<div class="paragraph">
+<p>This blog post describes how it is possible to achieve that by using <a href="https://open-vsx.org/extension/genuitecllc/codetogether">CodeTogether</a>, a third-party VS Code extension.</p>
+</div>
+<div class="paragraph">
+<p>There are different pricing plans available for this extension, but there is one free item when connecting to a maximum of 60 minutes and 3 shares which may be enough for most use cases.</p>
+</div>
+<div class="paragraph">
+<p>This is only possible using Eclipse Che starting with 7.46+ and using Visual Studio Code editor, not Che-Theia.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/pair-programming-vscode/pair-programming-vscode.gif" alt="Pair programming using Che">
+</div>
+</div>
+<div class="sect1">
+<h2 id="_quick-start-from-an-example">Quick start from an example</h2>
+<div class="sectionbody">
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Go to Eclipse Che dashboard page. The URL looks like <a href="https://eclipse-che-my-instance.com/dashboard/#/" class="bare">https://eclipse-che-my-instance.com/dashboard/#/</a></p>
+</li>
+<li>
+<p>Replace the last part of the URL containing <code>/dashboard/#</code> with <code>#https://github.com/benoitf/codetogether-che-petclinic</code> and press enter.</p>
+</li>
+<li>
+<p>A workspace starts and Visual Studio Code loads with a sample based on the <code>Petclinic</code> application.</p>
+</li>
+<li>
+<p>As <a href="https://open-vsx.org/extension/genuitecllc/codetogether">CodeTogether</a> is a recommended extension, accept the prompt asking to install this extension.</p>
+</li>
+<li>
+<p>CodeTogether will ask to access Visual Studio Code, click on <code>No</code></p>
+</li>
+<li>
+<p>A new prompt will ask to redirect port 1593: Click on <code>No</code></p>
+</li>
+<li>
+<p>Open the command palette (pressing <code>F1</code> for example) and select <code>CodeTogether: Start Hosting Session</code></p>
+</li>
+<li>
+<p>Keep the defaults for all properties and click on the <code>start</code> button</p>
+</li>
+<li>
+<p>A <code>Pair programming</code> link is then available in the clipboard.</p>
+</li>
+<li>
+<p>You can share this link with your team members. They will be able to join your workspace.</p>
+</li>
+<li>
+<p>It is possible to use this link to join from different IDEs or from a running Eclipse Che workspace (like the one we are using). To do that select 'CodeTogether: Join Session' rather than starting a new session.</p>
+</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_enabling-pair-programming-settings-on-your-own-example">Enabling pair programming settings on your own example</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In the previous section, a pre-configured repository was used but it is also possible to use your own git repository.</p>
+</div>
+<div class="paragraph">
+<p>This feature works only with Visual Studio Code IDE (not for example with Che-Theia).</p>
+</div>
+<div class="sect2">
+<h3 id="_use-visual-studio-code-as-the-ide-of-an-eclipse-che-workspace">Use Visual Studio Code as the IDE of an Eclipse Che workspace</h3>
+<div class="paragraph">
+<p>There are 2 ways to use Visual Studio Code IDE in a Che workspace:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add <code>?che-editor=che-incubator/che-code/insiders</code> at the end of the workspace URL</p>
+</li>
+<li>
+<p>Add a <code>.che/che-editor.yaml</code> file with the following content:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">id</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">che-incubator/che-code/insiders</span></code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_recommend-the-installation-of-codetogether">Recommend the installation of CodeTogether</h3>
+<div class="paragraph">
+<p>Include CodeTogether among the recommended extension.</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create the file <code>.vscode/extensions.json</code> with the following content:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="json"><span style="color: #f8f8f2">  </span><span style="color: #f8f8f2;background-color: #49483e">{</span><span style="color: #f8f8f2">
+    </span><span style="color: #f8f8f2;font-weight: bold">"recommendations"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #f8f8f2;background-color: #49483e">[</span><span style="color: #f8f8f2">
+      </span><span style="color: #e6db74">"genuitecllc.codetogether"</span><span style="color: #f8f8f2;background-color: #49483e">,</span><span style="color: #f8f8f2">
+    </span><span style="color: #f8f8f2;background-color: #49483e">]</span><span style="color: #f8f8f2">
+  </span><span style="color: #f8f8f2;background-color: #49483e">}</span></code></pre>
+</div>
+</div>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>That will trigger a prompt to install CodeTogether at workspace startup.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_add-a-devfile">Add a Devfile</h3>
+<div class="paragraph">
+<p>If you don&#8217;t have a Devfile at the root of your repository you should add one with a <a href="https://github.com/devfile/developer-images/">Universal Developer Image</a> component (it includes the most popular development tools and languages).</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Create a <code>.devfile.yaml</code> file with the following content:</p>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">schemaVersion</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">2.1.0</span>
+<span style="color: #a6e22e">metadata</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #a6e22e">name</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">my-workspace</span>
+<span style="color: #a6e22e">components</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+  <span style="color: #f8f8f2;background-color: #49483e">-</span> <span style="color: #a6e22e">name</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">tools</span>
+    <span style="color: #a6e22e">container</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">image</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">quay.io/devfile/universal-developer-image:ubi8-0e189d9</span>
+      <span style="color: #a6e22e">memoryLimit</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">3Gi</span></code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>Do not forget to update the <code>name</code> attribute of the devfile to match your project.</p>
+</li>
+</ol>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_share-your-workspace">Share your workspace</h3>
+<div class="paragraph">
+<p>Once you have committed these changes on a repository, you can share your workspace URL with your team.</p>
+</div>
+<div class="paragraph">
+<p>The URL looks like this: <code><a href="https://eclipse-che-my-instance.com#https://github.com/&lt;your-repository&gt" class="bare">https://eclipse-che-my-instance.com#https://github.com/&lt;your-repository&gt</a>;</code></p>
+</div>
+<div class="paragraph">
+<p>Or to share the pair-programming link, start your workspace first and then start a CodeTogether session.</p>
+</div>
+</div>
+</div>
+</div>]]></content><author><name>Florent Benoit</name></author><summary type="html"><![CDATA[How to do pair programming using a VS Code extension.]]></summary></entry><entry><title type="html">Reviewing pull requests</title><link href="https://che.eclipseprojects.io/2022/02/16/@david.kwon-reviewing-pull-requests.html" rel="alternate" type="text/html" title="Reviewing pull requests" /><published>2022-02-16T00:00:00+00:00</published><updated>2022-02-16T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2022/02/16/@david.kwon/reviewing-pull-requests</id><content type="html" xml:base="https://che.eclipseprojects.io/2022/02/16/@david.kwon-reviewing-pull-requests.html"><![CDATA[<div class="paragraph">
+<p>Reviewing pull requests for a GitHub project integrated with Eclipse&#160;Che.</p>
+</div>
+<div class="sect1">
+<h2 id="_demo-video">Demo Video</h2>
+<div class="sectionbody">
+<div class="videoblock">
+<div class="content">
+<iframe width="480" height="270" src="https://www.youtube.com/embed/GpxdvDkMWlU?rel=0" frameborder="0" allowfullscreen></iframe>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_using-eclipseche-to-review-pull-requests">Using Eclipse&#160;Che to review pull requests</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>With Google Chrome, Eclipse&#160;Che makes it possible to review a pull request (PR) without setting up runtimes, build tools, or any extra software on the local machine.</p>
+</div>
+<div class="paragraph">
+<p>This blog post will showcase the typical workflow of reviewing PRs of a GitHub project that is well-integrated with Eclipse Che. Here is the GitHub project used in this blog post: <a href="https://github.com/che-incubator/quarkus-api-example">www.github.com/che-incubator/quarkus-api-example</a>.</p>
+</div>
+<div class="paragraph">
+<p>You can refer to these articles on how to set up your project with Eclipse&#160;Che:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="../../01/11/@ilya.buziuk-contributing-for-the-first-time-to-a-project.html#set-up-project">How can maintainers set up their projects to use Eclipse Che?</a></p>
+</li>
+<li>
+<p><a href="https://www.eclipse.org/che/docs/che-7/end-user-guide/authoring-devfiles-version-2">Authoring a devfile v2</a></p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Your project must contain a well-defined <code>devfile.yaml</code> file to make the most out of your development experience with Eclipse&#160;Che. Use the devfile to define your project’s development environment such as development commands, containers, endpoints, and so on.
+</td>
+</tr>
+</table>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+The following scenario uses devfile v2, and Eclipse&#160;Che is deployed alongside the DevWorkspace engine which is currently not used on <a href="https://workspaces.openshift.com/">Eclipse Che Hosted by Red Hat</a>. To open the test GitHub project on Eclipse Che Hosted by Red Hat, please use the <a href="https://github.com/che-incubator/quarkus-api-example/tree/devfilev1">devfilev1</a> branch which supports the deprecated devfile v1.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the-scenario">The scenario</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Imagine that you&#8217;re developing a REST API with Quarkus that interacts with <code>Food</code> resources from a PostgreSQL database.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="java"><span style="color: #75715e;font-style: italic">/* Food.java */</span>
+
+<span style="color: #a6e22e;font-weight: bold">@Entity</span>
+<span style="color: #66d9ef;font-weight: bold">public</span> <span style="color: #66d9ef;font-weight: bold">class</span> <span style="color: #a6e22e;font-weight: bold">Food</span> <span style="color: #66d9ef;font-weight: bold">extends</span> <span style="color: #a6e22e;font-weight: bold">PanacheEntity</span> <span style="color: #f92672;font-weight: bold">{</span>
+
+    <span style="color: #a6e22e;font-weight: bold">@Column</span><span style="color: #f92672;font-weight: bold">(</span><span style="color: #f8f8f2;background-color: #49483e">length</span> <span style="color: #f92672;font-weight: bold">=</span> <span style="color: #ae81ff">40</span><span style="color: #f92672;font-weight: bold">)</span>
+    <span style="color: #66d9ef;font-weight: bold">public</span> <span style="color: #a6e22e;font-weight: bold">String</span> <span style="color: #f8f8f2;background-color: #49483e">name</span><span style="color: #f92672;font-weight: bold">;</span>
+
+    <span style="color: #a6e22e;font-weight: bold">@Column</span><span style="color: #f92672;font-weight: bold">(</span><span style="color: #f8f8f2;background-color: #49483e">length</span> <span style="color: #f92672;font-weight: bold">=</span> <span style="color: #ae81ff">40</span><span style="color: #f92672;font-weight: bold">)</span>
+    <span style="color: #66d9ef;font-weight: bold">public</span> <span style="color: #a6e22e;font-weight: bold">String</span> <span style="color: #f8f8f2;background-color: #49483e">restaurantName</span><span style="color: #f92672;font-weight: bold">;</span>
+
+    <span style="color: #66d9ef;font-weight: bold">public</span> <span style="color: #66d9ef;font-weight: bold">double</span> <span style="color: #f8f8f2;background-color: #49483e">price</span><span style="color: #f92672;font-weight: bold">;</span>
+
+<span style="color: #f92672;font-weight: bold">}</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In the current state of the project, there are four endpoints:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Method</th>
+<th class="tableblock halign-left valign-top">Endpoint</th>
+<th class="tableblock halign-left valign-top">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/food</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Lists all Food resources</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/food/{id}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Retrieves the Food resource with the specified ID</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>GET</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/food/search/{name}</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Retrieves a Food resource with the specified name</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>POST</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>/food</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Creates a Food resource</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>It looks like your colleague has opened a new PR that adds a new <code>GET</code> endpoint, <code>/food/restaurant/{restaurantName}</code>. The endpoint retrieves a list of all <code>Food</code> resources served from a specified restaurant:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/pr.png" alt="The pull request to review">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 1: The GitHub PR you need to review.</p>
+</div>
+<div class="paragraph">
+<p>Review this PR by launching a new Eclipse&#160;Che workspace. Here you can verify the PR by running unit tests, running the application, accessing the endpoint, and building the application, all within your web browser.</p>
+</div>
+<div class="paragraph">
+<p>Start the workspace and Web IDE editor on <a href="https://www.eclipse.org/che/docs/che-7/hosted-che/hosted-che/">Eclipse Che Hosted by Red Hat</a> by clicking the Eclipse&#160;Che badge from the base GitHub repository&#8217;s <code>README</code>:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/badge.png" alt="Badge used to start workspaces">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 2: Clicking on a badge from the base repository&#8217;s <code>README.md</code> launches a developer workspace.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_launching-a-workspace-and-reviewing-the-pr">Launching a workspace and reviewing the PR</h2>
+<div class="sectionbody">
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/ide.png" alt="The Che-theia editor">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 3: The Che-Theia editor.</p>
+</div>
+<div class="paragraph">
+<p>After you start the workspace, the web IDE will open automatically and you&#8217;ll see that the project has been cloned already (see the Explorer view on the left-hand side).</p>
+</div>
+<div class="paragraph">
+<p>To use the <a href="https://github.com/Microsoft/vscode-pull-request-github">GitHub Pull Requests and Issues</a> extension, you must first authenticate with GitHub by clicking on the Accounts icon on the bottom left of the editor. The extension adds the GitHub view to the sidebar and provides integration with GitHub. As a result, you can make PR comments, in-editor comments, approve PRs, and much more, all from the web IDE.</p>
+</div>
+<div class="paragraph">
+<p>Click on "Sign in to user GitHub Pull Requests and Issues (1)".
+You will be prompted to enter your GitHub credentials to sign in.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/sign-in.png" alt="The context menu appears after clicking the Accounts icon" width="600">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 4: The menu appears after clicking the Accounts icon.</p>
+</div>
+<div class="paragraph">
+<p>After signing in, navigate to the GitHub view from the sidebar to see an overview of PRs against the base repository. Under the "Assigned To Me" drop-down, you can see the PR that you&#8217;ll review.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/github-view.png" alt="Viewing the PR within the web IDE" width="400">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 5: The GitHub view, opened by clicking on the fifth icon from the top.</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+If you start a workspace with a badge generated using the <a href="https://github.com/marketplace/actions/try-in-web-ide">Try in Web IDE</a> GitHub action on a PR from a forked repository, you must manually set up Git remotes to use the GitHub Pull Requests and Issues extension. Please see <a href="https://github.com/redhat-actions/try-in-web-ide/issues/14">redhat-actions/try-in-web-ide#14</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The "Description" menu item, as well as a file hierarchy with all changed files, are in the drop-down menu below the PR. In this case, the changed files are <code>FoodResource.java</code>, <code>FoodEndpointTest.java</code>, and <code>README.md</code>. Click on the files to open a diff view within the web IDE. Examine these files and verify that the PR adds a new endpoint, as well as a unit test.</p>
+</div>
+<div class="paragraph">
+<p>Click on the "Description" menu item to open a new web view displaying the PR in a UI similar to GitHub. Check out the branch by clicking "Checkout" at the top right of Figure 6.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/pr-view.png" alt="Viewing the PR within the web IDE">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 6: A webview displaying details about the PR. This web view appears after clicking the "Description" menu item from Figure 5.</p>
+</div>
+<div class="paragraph">
+<p>The test project includes a preinstalled <a href="https://github.com/redhat-developer/vscode-java">Language support for Java ™</a> extension in the web IDE. With this extension, you can check the Problem view to verify that there are no compilation problems such as syntax errors.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/no-problems.png" alt="No problems reported by the Java extension">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 7: No problems reported by the Java extension in the Problems view.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_running-unit-tests-and-building">Running unit tests and building</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The devfile also defines commands for testing, building, and launching the application. Run the unit tests by opening the Workspace view from the right side and clicking <code>(User Runtimes &#8594; tools &#8594; runtests)</code>.</p>
+</div>
+<div class="paragraph">
+<p>This runs the test command (<code>./mvnw test</code>) within the <code>tools</code> container as specified in the devfile. You can view the test output in the output panel.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/run-tests.png" alt="Running the unit tests">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 8: Unit testing by clicking <code>runtests</code> from the Workspace view on the right.</p>
+</div>
+<div class="paragraph">
+<p>As you can see in the output from Figure 8, you passed the tests successfully.</p>
+</div>
+<div class="paragraph">
+<p>You can also run other commands such as <code>(User Runtimes &#8594; tools &#8594; package)</code> to build the application.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/build.png" alt="Successfully building the application">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 9: Successfully building the application.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+The <code>packagenative</code> command is used to build a native image with GraalVM. The command would fail for this test project on <a href="https://www.eclipse.org/che/docs/che-7/hosted-che/hosted-che/">Eclipse Che Hosted by Red Hat</a> due to the 7GB memory usage limit.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_running-the-application">Running the application</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Run the Quarkus application in <a href="https://quarkus.io/guides/getting-started#development-mode">development mode</a> by running the <code>(User Runtimes &#8594; tools &#8594; startdev)</code> command to access the endpoint.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/start-dev.png" alt="Starting the application in development mode">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 10: Starting the Quarkus project in development mode by clicking <code>startdev</code> from the Workspace view on the right.</p>
+</div>
+<div class="paragraph">
+<p>Next, access the new <code>/food/restaurant/{restaurantName}</code> endpoint. Here, you access <code>/food/restaurant/Local Deli</code> to get all <code>Food</code> resources from the restaurant named <code>Local Deli</code>.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/access-endpoint.png" alt="Accessing the new endpoint">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 11: Response from <code>/food/restaurant/Local Deli</code>.</p>
+</div>
+<div class="paragraph">
+<p>The response contains two <code>Food</code> resources from the <code>Local Deli</code> restaurant. This is a match with the <code>Food</code> resources from this restaurant in the <a href="https://github.com/che-incubator/quarkus-api-example/blob/main/src/main/resources/import.sql"><code>import.sql</code></a> file.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_providing-feedback-and-merging-the-pr">Providing feedback and merging the PR</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>So far, you have successfully run tests, ran the build, as well as ran the application in development mode to verify that the PR is working correctly.
+Next, merge the PR from the web IDE.</p>
+</div>
+<div class="paragraph">
+<p>Go back to the GitHub PR view (see Figure 5) to provide more comments, and approve the PR. Merge the PR to <code>main</code>.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/merge.png" alt="Merging to main from the web IDE">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 12: Clicking "Merge Pull Request" to merge.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/reviewing-pull-requests/merged.png" alt="Merged to main from the web IDE">
+</div>
+</div>
+<div class="paragraph">
+<p>Figure 13: PR has been merged.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_conclusion">Conclusion</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>You have finished reviewing the PR and have successfully merged it from the web IDE editor.
+In summary, we have:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Opened a new Eclipse&#160;Che workspace to review the PR</p>
+</li>
+<li>
+<p>Checked out the feature branch</p>
+</li>
+<li>
+<p>Ran the unit tests</p>
+</li>
+<li>
+<p>Built the application</p>
+</li>
+<li>
+<p>Ran the application in development mode to verify that the feature works as intended</p>
+</li>
+<li>
+<p>Used the GitHub Pull Requests and Issues extension and the Language support for Java ™ extension</p>
+</li>
+<li>
+<p>Merged the PR from the web IDE</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>without any prior setup on your local machine.</p>
+</div>
+<div class="paragraph">
+<p>Thank you for reading!</p>
+</div>
+</div>
+</div>]]></content><author><name>David Kwon</name></author><summary type="html"><![CDATA[Reviewing pull requests with Eclipse Che.]]></summary></entry><entry><title type="html">Contributing for the first time to a project</title><link href="https://che.eclipseprojects.io/2022/01/11/@ilya.buziuk-contributing-for-the-first-time-to-a-project.html" rel="alternate" type="text/html" title="Contributing for the first time to a project" /><published>2022-01-11T00:00:00+00:00</published><updated>2022-01-11T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2022/01/11/@ilya.buziuk/contributing-for-the-first-time-to-a-project</id><content type="html" xml:base="https://che.eclipseprojects.io/2022/01/11/@ilya.buziuk-contributing-for-the-first-time-to-a-project.html"><![CDATA[<div class="sect2">
+<h3 id="_introduction">Introduction</h3>
+<div class="paragraph">
+<p>The complexity of applications has changed dramatically over the last decade, and nowadays it is not always straightforward to contribute to a new project for the first time.
+At the beginning, developers need to properly set up the local environment including:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>build tools</p>
+</li>
+<li>
+<p>runtimes</p>
+</li>
+<li>
+<p>dependencies</p>
+</li>
+<li>
+<p>IDEs</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For complex projects, it could easily take weeks for new developers to get the builds running on their machines.
+In general, a significant amount of the team&#8217;s week is spent on building and maintaining developer environments.
+With Eclipse&#160;Che we are solving the complexity of the onboarding, configuration, and setup by defining a new cloud-native, zero-install, and repeatable concept of a workspace.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_contributing-for-the-first-time-to-a-project-using-eclipseche">Contributing for the first time to a project using Eclipse&#160;Che</h3>
+<div class="paragraph">
+<p>The motto of Eclipse&#160;Che is that anyone anytime can contribute to a project without installing software.
+In order to contribute to a project, just click on the badge defined in the <code>README.md</code> file of the repository, and within a minute you will get a workspace ready for development with all the tools and runtimes available out of the box.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/contribute.png" alt="Contribute Badge">
+</div>
+<div class="title">Figure 1. The Eclipse&#160;Che contribute badge in <code>README.md</code></div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>By default, Eclipse&#160;Che is using a customized version of <a href="https://theia-ide.org/">Theia</a>, which provides <a href="https://code.visualstudio.com/">VS Code</a>-like experience including the support of extensions:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/ide.png" alt="Eclipse&#160;Che Theia IDE">
+</div>
+<div class="title">Figure 2. Eclipse&#160;Che Theia IDE</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>Programming languages facilities like code completion, navigation, and CodeLens are provided using the <a href="https://microsoft.github.io/language-server-protocol/">Language Server Protocol</a>. Eclipse&#160;Che benefits from a growing ecosystem of over 60 available language servers, delivering intelligent editing support for all major programming languages.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/content-assist.png" alt="Content Assist">
+</div>
+<div class="title">Figure 3. Java Content Assist</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>Pre-defined commands (<code>Terminal</code> &#8594; <code>Run Task&#8230;&#8203;</code>) allow you to easily build, run, debug, and test the application.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/commands.png" alt="IDE Commands">
+</div>
+<div class="title">Figure 4. Pre-defined commands</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>Additional extensions can be enabled by using the <code>Ctrl+Shift+J</code> shortcut or <code>View</code> &#8594; <code>Plugins</code> menu items:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/plugins.png" alt="The 'Plugins' view">
+</div>
+<div class="title">Figure 5. The 'Plugins' view</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>Debug the application by using the <code>F5</code> shortcut or <code>Run</code> &#8594; <code>Start Debugging</code> menu items:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/debug.png" alt="Debugging the application">
+</div>
+<div class="title">Figure 6. Debugging Java application</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>Commit and push the changes from the terminal or use the <code>Source Control</code> view:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/source-control.png" alt="[The 'Source Control' view">
+</div>
+<div class="title">Figure 7. The 'Source Control' view</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="paragraph">
+<p>Now you are ready for the first contribution. For GitHub, a dedicated plugin is available that allows opening pull requests right from the IDE:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="/assets/img/contribute-to-a-project/github-plugin.png" alt="[The 'GitHub' plugin">
+</div>
+<div class="title">Figure 8. The 'GitHub' plugin</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="set-up-project">How can maintainers set up their projects to use Eclipse&#160;Che?</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Deploy Eclipse&#160;Che on a Kubernetes cluster or use <a href="https://workspaces.openshift.com/">Eclipse Che hosted by Red Hat</a>.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+At the moment, <a href="https://workspaces.openshift.com/">Eclipse Che hosted by Red Hat</a> does not use the DevWorkspace Operator that is in charge of the devfile v2 support.
+The switch to the DevWorkspace engine is planned for spring 2022.
+Currently, devfiles v2 are automatically converted to devfile v1 equivalents via the <a href="https://github.com/che-incubator/devfile-converter">converter library</a> under the hood during workspace startup.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="title">The recommended file structure of the repository</div>
+<div class="content">
+<pre>  |--- devfile.yaml
+  |--- README.md
+  |___ .che
+         |___ che-editor.yaml
+         |___ che-theia-plugins.yaml
+  |___ .vscode
+         |___ extensions.json
+         |___ launch.json</pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add <code>.devfile.yaml</code> or <code>devfile.yaml</code> file to the root of the project in order to specify the relevant components and commands in a declarative way.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The devfile provides easy to configure, highly reproducible definitions of portable developer environments.
+For more information about devfiles, see the <a href="https://devfile.io/">Devfile Documentation</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Omitting the creation of the devfile file will result in using a default container based on the <a href="https://quay.io/repository/devfile/universal-developer-image">Universal Developer Image</a>,
+which provides various languages (including Java, Node.js, Python, PHP, Golang, etc) and tools (including <code>curl</code>, <code>jq</code>, <code>git</code>, etc).
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add the <code>.vscode/extensions.json</code> file to the root of the project in order to add VS Code extensions if the editor is Theia (the default) or VS Code:</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="json"><span style="color: #f8f8f2;background-color: #49483e">{</span><span style="color: #f8f8f2">
+  </span><span style="color: #f8f8f2;font-weight: bold">"recommendations"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #f8f8f2;background-color: #49483e">[</span><span style="color: #f8f8f2">
+    </span><span style="color: #e6db74">"redhat.java"</span><span style="color: #f8f8f2">
+  </span><span style="color: #f8f8f2;background-color: #49483e">]</span><span style="color: #f8f8f2">
+</span><span style="color: #f8f8f2;background-color: #49483e">}</span></code></pre>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Important</div>
+</td>
+<td class="content">
+The list of VS Code extensions is available in the Eclipse&#160;Che plug-in registry.
+If the specified extensions are not available in the registry, the workspace will start, but the extensions will not be added to the workspace.
+</td>
+</tr>
+</table>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add the <code>.vscode/launch.json</code> file for specifying <code>Run</code> and <code>Debug</code> commands if the editor is Theia or VS Code:</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="json"><span style="color: #f8f8f2;background-color: #49483e">{</span><span style="color: #f8f8f2">
+    </span><span style="color: #f8f8f2;font-weight: bold">"version"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #e6db74">"0.2.0"</span><span style="color: #f8f8f2;background-color: #49483e">,</span><span style="color: #f8f8f2">
+    </span><span style="color: #f8f8f2;font-weight: bold">"configurations"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #f8f8f2;background-color: #49483e">[</span><span style="color: #f8f8f2">
+        </span><span style="color: #f8f8f2;background-color: #49483e">{</span><span style="color: #f8f8f2">
+            </span><span style="color: #f8f8f2;font-weight: bold">"type"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #e6db74">"java"</span><span style="color: #f8f8f2;background-color: #49483e">,</span><span style="color: #f8f8f2">
+            </span><span style="color: #f8f8f2;font-weight: bold">"name"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #e6db74">"Debug (Attach) - Remote"</span><span style="color: #f8f8f2;background-color: #49483e">,</span><span style="color: #f8f8f2">
+            </span><span style="color: #f8f8f2;font-weight: bold">"request"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #e6db74">"attach"</span><span style="color: #f8f8f2;background-color: #49483e">,</span><span style="color: #f8f8f2">
+            </span><span style="color: #f8f8f2;font-weight: bold">"hostName"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #e6db74">"localhost"</span><span style="color: #f8f8f2;background-color: #49483e">,</span><span style="color: #f8f8f2">
+            </span><span style="color: #f8f8f2;font-weight: bold">"port"</span><span style="color: #f8f8f2;background-color: #49483e">:</span><span style="color: #f8f8f2"> </span><span style="color: #ae81ff">5005</span><span style="color: #f8f8f2">
+        </span><span style="color: #f8f8f2;background-color: #49483e">}</span><span style="color: #f8f8f2">
+    </span><span style="color: #f8f8f2;background-color: #49483e">]</span><span style="color: #f8f8f2">
+</span><span style="color: #f8f8f2;background-color: #49483e">}</span></code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add the <code>.che/che-theia-plugins.yaml</code> file if extra customizations of Theia plugins are required.</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Eclipse&#160;Che uses <code>.che/che-theia-plugins.yaml</code> file only if the editor is Theia.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>For example, overriding the default memory limit of <code>redhat.java</code> sidecar container:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #f8f8f2;background-color: #49483e">-</span> <span style="color: #a6e22e">id</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">redhat/java</span>
+  <span style="color: #a6e22e">override</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #a6e22e">sidecar</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+      <span style="color: #a6e22e">memoryLimit</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">2Gi</span></code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add the <code>.che/che-editor.yaml</code> file to override the default editor (Theia) with a different one (e.g. VS Code or JetBrains IntelliJ) and specify the editor container properties. For example, overriding the default memory limit of the <code>theia-ide</code> container:</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="rouge highlight" style="color: #f8f8f2;background-color: #49483e"><code data-lang="yaml"><span style="color: #a6e22e">id</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">eclipse/che-theia/latest</span>          <span style="color: #75715e;font-style: italic"># mandatory</span>
+<span style="color: #a6e22e">registryUrl</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">https://my-registry.com</span>  <span style="color: #75715e;font-style: italic"># optional</span>
+<span style="color: #a6e22e">override</span><span style="color: #f8f8f2;background-color: #49483e">:</span>                             <span style="color: #75715e;font-style: italic"># optional</span>
+  <span style="color: #a6e22e">containers</span><span style="color: #f8f8f2;background-color: #49483e">:</span>
+    <span style="color: #f8f8f2;background-color: #49483e">-</span> <span style="color: #a6e22e">name</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">theia-ide</span>
+      <span style="color: #a6e22e">memoryLimit</span><span style="color: #f8f8f2;background-color: #49483e">:</span> <span style="color: #e6db74">1280Mi</span></code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Add the Eclipse&#160;Che badge to the project <code>README.md</code> file with a link for starting a workspace:</p>
+</li>
+</ul>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://www.eclipse.org/che/contribute.svg" alt="Contribute Badge">
+</div>
+<div class="title">Figure 9. The official Eclipse&#160;Che badge</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p><code>[![Contribute](<a href="https://www.eclipse.org/che/contribute.svg" class="bare">https://www.eclipse.org/che/contribute.svg</a>)](https://che-host#https://github.com/my/repository)</code></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Once the line above is added to the <code>README.md</code>, it will be possible to start a workspace by simply clicking on the badge icon.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Note</div>
+</td>
+<td class="content">
+Eclipse&#160;Che images from <a href="https://simpleicons.org/?q=eclipse-che">Simple Icons</a> can be also used for generation of the custom badges via <a href="https://shields.io/">Shields IO</a>.
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>https://img.shields.io/static/v1?label=eclipse&amp;message=che&amp;logo=eclipseche
+https://img.shields.io/static/v1?label=code%20with&amp;message=che&amp;logo=eclipseche&amp;color=FDB940&amp;labelColor=525C86
+https://img.shields.io/static/v1?label=eclipse&amp;message=che&amp;logo=eclipseche&amp;color=FDB940&amp;labelColor=525C86&amp;style=plastic
+https://img.shields.io/static/v1?label=eclipse&amp;message=che&amp;logo=eclipseche&amp;color=FDB940&amp;labelColor=525C86&amp;style=flat-square
+https://img.shields.io/static/v1?label=eclipse&amp;message=che&amp;logo=eclipseche&amp;style=social</pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://img.shields.io/static/v1?label=eclipse&message=che&logo=eclipseche" alt="Contribute Badge">
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://img.shields.io/static/v1?label=code%20with&message=che&logo=eclipseche&color=FDB940&labelColor=525C86" alt="Contribute Badge">
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://img.shields.io/static/v1?label=eclipse&message=che&logo=eclipseche&color=FDB940&labelColor=525C86&style=plastic" alt="Contribute Badge">
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://img.shields.io/static/v1?label=eclipse&message=che&logo=eclipseche&color=FDB940&labelColor=525C86&style=flat-square" alt="Contribute Badge">
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="https://img.shields.io/static/v1?label=eclipse&message=che&logo=eclipseche&style=social" alt="Contribute Badge">
+</div>
+</div>
+<div class="paragraph">
+<p></p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set up <a href="https://github.com/marketplace/actions/try-in-web-ide">Try in Web IDE</a> GitHub action in the repository in order to test and review pull requests with Eclipse&#160;Che.
+More details about the GitHub action can be found in the <a href="https://che.eclipseprojects.io/2021/10/18/@david.kwon-test-pull-requests-with-the-try-in-web-ide-github-action.html">Test pull requests with the Try in Web IDE GitHub action</a> blog post.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Now you are all set. Happy Coding!</p>
+</div>
+</div>]]></content><author><name>Ilya Buziuk</name></author><summary type="html"><![CDATA[The article describes how to easily contribute to a project using Eclipse Che]]></summary></entry><entry><title type="html">Authoring a URL to start a workspace</title><link href="https://che.eclipseprojects.io/2021/12/20/@florent.benoit-authoring-a-url-to-start-a-workspace.html" rel="alternate" type="text/html" title="Authoring a URL to start a workspace" /><published>2021-12-20T00:00:00+00:00</published><updated>2021-12-20T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2021/12/20/@florent.benoit/authoring-a-url-to-start-a-workspace</id><content type="html" xml:base="https://che.eclipseprojects.io/2021/12/20/@florent.benoit-authoring-a-url-to-start-a-workspace.html"><![CDATA[<div class="paragraph">
+<p>As a user, you can create a workspace using a direct URL rather than navigating the user dashboard.
+This blog post describes how to author a URL to start a workspace.
+The coordinates are organized into the standard sequence shown below.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<a class="image" href="../../assets/img/start-a-workspace/start-workspace-link.png"><img src="../../../assets/img/start-a-workspace/start-workspace-link.png" alt="Authoring a URL to start a workspace"></a>
+</div>
+</div>
+<div class="paragraph">
+<p>To use a URL to start a workspace you can choose to:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Paste the URL in the address bar of your browser.</p>
+</li>
+<li>
+<p>Distribute the URL as a link (in an onboarding procedure, in a pull request comment).</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>When you click on a URL to start a workspace, Eclipse&#160;Che:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Creates or reuses a workspace. A parameter can request to always create a new workspace.</p>
+</li>
+<li>
+<p>Clones the repository.</p>
+</li>
+<li>
+<p>Searches for a devfile in the given repository. A parameter can override the default location: <code>.devfile.yaml</code> or <code>devfile.yaml</code>. The devfile describes the containers and commands to use for that project. See the <a href="https://devfile.io/">Devfile Documentation</a>. Omitting this file will result in a default container, which provides different languages (including Java, Node.js, Python, PHP, Golang, etc) and tools (including <code>curl</code>, <code>jq</code>, <code>yq</code>, etc).</p>
+</li>
+<li>
+<p>Starts the containers to use for that project.</p>
+</li>
+<li>
+<p>Starts the IDE. A parameter can override the default IDE.</p>
+</li>
+</ol>
+</div>
+<div class="sect1">
+<h2 id="_url-parameters-reference">URL parameters reference</h2>
+<div class="sectionbody">
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Mandatory repository parameter:</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">parameter</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>#<em>&lt;repository_URL&gt;</em></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Repository URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>#https://github.com/eclipse-che/che-server/tree/7.40.x</code></p></td>
+</tr>
+</tbody>
+</table>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. Optional parameters: (<code>?</code> followed by <code>keyword=value</code>)</caption>
+<colgroup>
+<col style="width: 33.3333%;">
+<col style="width: 33.3333%;">
+<col style="width: 33.3334%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Keyword</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>che-editor=<em>&lt;ide&gt;</em></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">IDE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>?che-editor=eclipse/che-theia/latest</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>devfilePath=<em>&lt;devfile&gt;</em></code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Devfile path</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>?devfilePath=.che/my-devfile.yaml</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>new</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Always create a new workspace</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>?new</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>Note: <code>?new</code> keyword has no value</p>
+</div>
+<div class="paragraph">
+<p>In the last part of the URL, parameter list preceded by ? and using the &amp; separator.</p>
+</div>
+<div class="paragraph">
+<p><em><a href="https://che-host" class="bare">https://che-host</a></em>#<em>&lt;repository_url&gt;</em>?<em>&lt;parameter_1&gt;</em>&amp;<em>&lt;parameter_2&gt;</em></p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_defining-the-git-repository-url">Defining the Git repository URL</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This syntax is available when using DevWorkspace Operator.</p>
+</div>
+<div class="paragraph">
+<p>The Git repository URL is mandatory.
+Che supports following Git providers: GitHub, GitLab, or on-premise Bitbucket.</p>
+</div>
+<div class="paragraph">
+<p>Add a <code>#</code> character and append the repository URL: <code>#<em>&lt;repository_URL&gt;</em></code>.</p>
+</div>
+<div class="exampleblock">
+<div class="title">Example 1. Open Eclipse Che Server repository in Eclipse Che hosted by Red Hat</div>
+<div class="content">
+<div class="paragraph">
+<p><a href="https://workspaces.openshift.com#https://github.com/eclipse-che/che-server" class="bare">https://workspaces.openshift.com#https://github.com/eclipse-che/che-server</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_url-syntax-by-git-provider">URL syntax by Git provider</h3>
+<div class="paragraph">
+<p>URL syntax for cloning GitHub-hosted repositories to the starting workspace:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>To clone the default branch on GitHub to the starting workspace:</p>
+<div class="paragraph">
+<p><code>#https://github.com/<em>&lt;user_or_org&gt;</em>/<em>&lt;repository&gt;</em></code></p>
+</div>
+<div class="exampleblock">
+<div class="title">Example 2. Cloning the default branch of the <a href="https://github.com/eclipse-che/che-plugin-registry">Plug-in registry repository</a>.</div>
+<div class="content">
+<div class="paragraph">
+<p><code>#https://github.com/eclipse-che/che-plugin-registry</code></p>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>To clone a specified branch on GitHub to the starting workspace:</p>
+<div class="paragraph">
+<p><code>#https://github.com/<em>&lt;user_or_org&gt;</em>/<em>&lt;repository&gt;</em>/tree/<em>&lt;branch-name&gt;</em></code></p>
+</div>
+<div class="exampleblock">
+<div class="title">Example 3. Cloning the <code>7.39.x</code> branch of the <a href="https://github.com/eclipse-che/che-plugin-registry">Plug-in registry repository</a>.</div>
+<div class="content">
+<div class="paragraph">
+<p><code>#https://github.com/eclipse-che/che-plugin-registry/tree/7.39.x</code></p>
+</div>
+</div>
+</div>
+</li>
+<li>
+<p>To clone the branch of a pull request on GitHub to the starting workspace:</p>
+<div class="paragraph">
+<p><code>#https://github.com/<em>&lt;user_or_org&gt;</em>/<em>&lt;repository&gt;</em>/pull/<em>&lt;pull-request-id&gt;</em></code></p>
+</div>
+<div class="exampleblock">
+<div class="title">Example 4. Cloning the <a href="https://github.com/eclipse-che/che-plugin-registry/pull/1097">Plug-in registry repository pull request <code>#1097</code></a>.</div>
+<div class="content">
+<div class="paragraph">
+<p><code>#https://github.com/eclipse-che/che-plugin-registry/pull/1097</code></p>
+</div>
+</div>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>URL syntax for cloning GitLab-hosted repositories:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>To clone the default branch on GitLab to the starting workspace:</p>
+<div class="paragraph">
+<p><code>#https://gitlab.com/<em>&lt;user_or_org&gt;</em>/<em>&lt;repository&gt;</em></code></p>
+</div>
+</li>
+<li>
+<p>To clone a specified branch on GitLab to the starting workspace:</p>
+<div class="paragraph">
+<p><code>#https://gitlab.com/<em>&lt;user_or_org&gt;</em>/<em>&lt;repository&gt;</em>/-/tree/<em>&lt;branch&gt;</em></code></p>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>URL syntax for cloning BitBucket-hosted repositories:</p>
+</div>
+<div class="admonitionblock warning">
+<table>
+<tr>
+<td class="icon">
+<div class="title">Warning</div>
+</td>
+<td class="content">
+Eclipse&#160;Che supports only on premises BitBucket instances.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_defining-the-editor-or-integrated-development-environment-ide">Defining the editor or Integrated Development Environment (IDE)</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Eclipse&#160;Che starts workspaces with a default IDE: Che Theia.</p>
+</div>
+<div class="paragraph">
+<p>Overriding the default editor is possible with the <code>?che-editor=<em>&lt;editor-id&gt;</em></code> parameter. The <code>editor-id</code> comes from the identifier of the IDE in the plug-in registry.</p>
+</div>
+<div class="exampleblock">
+<div class="title">Example 5. Using the next version of Theia (build after each commit)</div>
+<div class="content">
+<div class="paragraph">
+<p><code>https://che-host#https://github.com/example/foo?che-editor=eclipse/che-theia/next</code></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>Some available IDE keys:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>eclipse/che-theia/latest</code></p>
+</li>
+<li>
+<p><code>eclipse/che-theia/next</code></p>
+</li>
+<li>
+<p><code>che-incubator/intellij-community/latest</code></p>
+</li>
+<li>
+<p><code>che-incubator/pycharm/latest</code></p>
+</li>
+<li>
+<p><code>che-incubator/che-code/insiders</code></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Obtain IDE keys from the plug-in registry by looking at <code>Che Editor</code> type entries.</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p><code>https://che-host/che-plugin-registry/main/index.json</code></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The parameter <code>?che-editor</code> accepts a link to the devfile hosted on a public server (with Cross-Origin Resource Sharing (CORS) enabled).</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p><code>https://che-host#https://github.com/example/foo?che-editor=https://eclipse-che.github.io/che-plugin-registry/main/v3/plugins/che-incubator/che-code/insiders/devfile.yaml</code></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_using-a-different-devfile-file-from-the-repository">Using a different devfile file from the repository</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If the devfile file name is different from the default search pattern, which is <code>.devfile.yaml</code> or <code>devfile.yaml</code>, it is possible to override that name.</p>
+</div>
+<div class="paragraph">
+<p>Use the parameter <code>?devfilePath=mydevfile.yaml</code> at the end of <code><a href="https://che-host#" class="bare">https://che-host#</a><em>&lt;git_repository_url&gt;</em></code>.</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p><code>https://che-host#https://github.com/example/foo?devfilePath=mydevfile.yaml</code></p>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The short name for the <code>devfilePath</code> parameter is <code>df</code>.</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="paragraph">
+<p><code>https://che-host#https://github.com/example/foo?df=mydevfile.yaml</code></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_creating-or-reusing-a-workspace">Creating or reusing a workspace</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>If you enter a URL such as <code>https://che-host#http://github.com/foo/bar</code> and you don’t have any workspace named <code>bar</code>, Eclipse&#160;Che creates a workspace named <code>bar</code> and clones the GitHub repository.</p>
+</div>
+<div class="paragraph">
+<p>Each time you enter a URL such as <code><a href="https://che-host#http://github.com/foo/bar" class="bare">https://che-host#http://github.com/foo/bar</a></code> again, Eclipse&#160;Che reopens the existing workspace <code>bar</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_always-creating-a-new-workspace">Always creating a new workspace</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>To create another workspace each time you enter the same URL, enter the URL appended with <code>?new</code> in the URL format <code>https://che-host#http://github.com/foo/bar?new</code>. Even if you already have a workspace named <code>bar</code>, each time you enter such URL, Eclipse&#160;Che will create another, sequentially named workspace (example: <code>bar-abcde</code>).</p>
+</div>
+</div>
+</div>]]></content><author><name>Florent Benoit</name></author><summary type="html"><![CDATA[How to start a workspace by customizing the URL.]]></summary></entry><entry><title type="html">Test pull requests with the Try in Web IDE GitHub action</title><link href="https://che.eclipseprojects.io/2021/10/18/@david.kwon-test-pull-requests-with-the-try-in-web-ide-github-action.html" rel="alternate" type="text/html" title="Test pull requests with the Try in Web IDE GitHub action" /><published>2021-10-18T00:00:00+00:00</published><updated>2021-10-18T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2021/10/18/@david.kwon/test-pull-requests-with-the-try-in-web-ide-github-action</id><content type="html" xml:base="https://che.eclipseprojects.io/2021/10/18/@david.kwon-test-pull-requests-with-the-try-in-web-ide-github-action.html"><![CDATA[<p><em>Cross posted from the <a href="https://developers.redhat.com/articles/2021/10/07/test-pull-requests-try-web-ide-github-action#integrate_the_try_in_web_ide_action_with_your_github_repository">Red Hat Developer blog</a>.</em></p>
+
+<p>Web-based, cloud-hosted integrated development environments (IDEs) can make development and collaboration more efficient if they are well integrated with version control. This blog post shows you how to use the <a href="https://github.com/marketplace/actions/try-in-web-ide">Try in Web IDE GitHub action</a> to make it easier for collaborators to test pull requests on <a href="https://www.eclipse.org/che/docs/che-7/hosted-che/hosted-che/">Eclipse Che hosted by Red Hat</a>.</p>
+
+<p>Note: The instance of Eclipse Che used by the Try in Web IDE GitHub action can be configured. The default instance is <a href="https://workspaces.openshift.com">workspaces.openshift.com</a> (Eclipse Che hosted by Red Hat).</p>
+
+<h2 id="the-try-in-web-ide-github-action">The Try in Web IDE GitHub action</h2>
+<p>The Try in Web IDE GitHub action makes it easy to try a pull request in your browser-based developer environment. The GitHub action listens to pull request events and provides a comment or status check with a link. When you click the link, it opens the branch in a new web IDE workspace.</p>
+
+<p>The <a href="https://github.com/eclipse/che-docs">Eclipse Che documentation</a> repository has recently integrated this GitHub action into its workflow. You can view a recent pull request to try it yourself. Figure 1 shows a pull request comment created by the GitHub action. Clicking the badge opens a new workspace to try the pull request in the web browser.</p>
+
+<p><img src="https://che.eclipseprojects.io//assets/img/test-pull-requests-with-the-try-in-web-ide-github-action/comment.png" alt="GitHub PR comment with badge to open PR branch in new workspace" />
+<span style="color:grey"><em>Figure 1: Clicking the badge opens a web IDE workspace for testing the pull request.</em></span></p>
+
+<p>Figure 2 shows a status check done by the GitHub action. Clicking the Details link opens a new workspace to try the pull request in the web browser.</p>
+
+<p><img src="https://che.eclipseprojects.io//assets/img/test-pull-requests-with-the-try-in-web-ide-github-action/status-check.png" alt="GitHub PR status check with link to open PR branch in new workspace" />
+<span style="color:grey"><em>Figure 2: Clicking the Details link opens a web IDE workspace for testing the pull request.</em></span></p>
+
+<p>Figure 3 shows the workspace created in Eclipse Che hosted by Red Hat. This is the web IDE workspace that opens in the web browser when you click either the badge from Figure 1 or the link from Figure 2. From here, you can try the pull request and test its correctness.</p>
+
+<p><img src="https://che.eclipseprojects.io//assets/img/test-pull-requests-with-the-try-in-web-ide-github-action/crw.png" alt="PR branch opened in a new workspace" />
+<span style="color:grey"><em>Figure 3: Try the pull request and test its correctness.</em></span></p>
+
+<h2 id="integrate-the-try-in-web-ide-action-with-your-github-repository">Integrate the Try in Web IDE action with your GitHub repository</h2>
+<p>This section shows you how to add the Try in Web IDE GitHub action to your GitHub repository’s workflow. We will configure the action to automatically create a comment (Figure 1) and status check (Figure 2) on new pull requests.</p>
+
+<h3 id="prerequisites-and-setup">Prerequisites and setup</h3>
+<p>You will need a Red Hat account to use Eclipse Che hosted by Red Hat. Navigate to <a href="https://developers.redhat.com/developer-sandbox">Developer Sandbox for Red Hat OpenShift</a>, register for a free account, and launch your Developer Sandbox environment. Note that you must verify your identity with a phone number.</p>
+
+<p>You also need an account on GitHub and a repository where you can integrate GitHub actions.</p>
+
+<p>Finally, although not mandatory, you can add a <a href="https://www.eclipse.org/che/docs/che-7/end-user-guide/authoring-devfiles-version-1/">devfile</a> in the root of your GitHub repository to specify the features of the development environment and IDE. We’ll use the devfile very shortly.</p>
+
+<h3 id="step-1-create-the-github-workflow-file">Step 1: Create the GitHub workflow file</h3>
+<p>In your GitHub repository, create a <code class="language-plaintext highlighter-rouge">.github/workflows</code> directory if it does not exist already. Then, create a file named <code class="language-plaintext highlighter-rouge">example.yml</code> in <code class="language-plaintext highlighter-rouge">.github/workflows</code> with the following content:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">name</span><span class="pi">:</span> <span class="s">Try in Web IDE example</span>
+
+<span class="na">on</span><span class="pi">:</span>
+  <span class="na">pull_request_target</span><span class="pi">:</span>
+    <span class="c1"># Triggers workflow on pull request open</span>
+    <span class="na">types</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">opened</span><span class="pi">]</span>
+
+<span class="na">jobs</span><span class="pi">:</span>
+  <span class="na">add-link</span><span class="pi">:</span>
+    <span class="na">runs-on</span><span class="pi">:</span> <span class="s">ubuntu-20.04</span>
+    <span class="na">steps</span><span class="pi">:</span>
+      <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">Web IDE Pull Request Check</span>
+        <span class="na">id</span><span class="pi">:</span> <span class="s">try-in-web-ide</span>
+        <span class="na">uses</span><span class="pi">:</span> <span class="s">redhat-actions/try-in-web-ide@v1</span>
+        <span class="na">with</span><span class="pi">:</span>
+          <span class="c1"># GitHub action inputs</span>
+
+          <span class="c1"># required</span>
+          <span class="na">github_token</span><span class="pi">:</span> <span class="s">$</span>
+
+          <span class="c1"># optional - defaults to true</span>
+          <span class="na">add_comment</span><span class="pi">:</span> <span class="no">true</span>
+
+          <span class="c1"># optional - defaults to true</span>
+          <span class="na">add_status</span><span class="pi">:</span> <span class="no">true</span>
+</code></pre></div></div>
+
+<p>This file defines a workflow named <code class="language-plaintext highlighter-rouge">Try in Web IDE example</code>, with a job that runs the <code class="language-plaintext highlighter-rouge">v1</code> version of the Try in Web IDE GitHub action. The workflow is triggered on the <a href="https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows"><code class="language-plaintext highlighter-rouge">pull_request_target</code></a> event on the <code class="language-plaintext highlighter-rouge">opened</code> activity type.</p>
+
+<h3 id="step-2-configure-the-github-workflow-file">Step 2: Configure the GitHub workflow file</h3>
+<p>You can further configure the workflow defined in <code class="language-plaintext highlighter-rouge">example.yml</code> to fit your needs. Consider adding more activity types within the <code class="language-plaintext highlighter-rouge">on.pull_request_target.types</code> field. Alongside the <code class="language-plaintext highlighter-rouge">opened</code> event, other events that you might find useful are <code class="language-plaintext highlighter-rouge">reopened</code> (which is triggered when the pull request is reopened) and <code class="language-plaintext highlighter-rouge">synchronize</code> (which is triggered when the pull request’s tracking branch synchronizes with its source branch). The new types are added in the following code snippet:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nn">...</span>
+
+<span class="na">on</span><span class="pi">:</span>
+  <span class="na">pull_request_target</span><span class="pi">:</span>
+    <span class="c1"># Add multiple activity types</span>
+    <span class="na">types</span><span class="pi">:</span> <span class="pi">[</span><span class="nv">opened</span><span class="pi">,</span> <span class="nv">reopened</span><span class="pi">,</span> <span class="nv">synchronize</span><span class="pi">]</span>
+
+<span class="nn">...</span>
+</code></pre></div></div>
+
+<p>The <code class="language-plaintext highlighter-rouge">add_comment</code> and <code class="language-plaintext highlighter-rouge">add_status</code> GitHub action inputs can also be configured to customize whether the comment or status check is created in the pull request. For example, the following code snippet disables pull request comments:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        <span class="s">...</span>
+
+        <span class="s">with</span><span class="err">:</span>
+          <span class="na">github_token</span><span class="pi">:</span> <span class="s">${{ secrets.GITHUB_TOKEN }}</span>
+          <span class="na">add_comment</span><span class="pi">:</span> <span class="no">false</span>
+          <span class="na">add_status</span><span class="pi">:</span> <span class="no">true</span>
+</code></pre></div></div>
+<p>The full table of inputs is available in the Try in Web IDE GitHub action <a href="https://github.com/marketplace/actions/try-in-web-ide#action-inputs">documentation</a>.</p>
+
+<h3 id="step-3-optional-create-a-devfile">Step 3 (optional): Create a devfile</h3>
+<p>To define the development environment of the web IDE workspace, creating a devfile in the root of the repository is highly recommended. Configuring a devfile ensures that the workspace contains everything you need to effectively try and test the pull request, such as plug-ins, development commands, Kubernetes objects, and other aspects of the environment setup.</p>
+
+<p>For example, specifying the Red Hat Java plug-in in the devfile provides features that Java developers use (for things like debugging, code completion, and so on) within the web IDE workspace.</p>
+
+<p>Here is an example of a minimal devfile.yml file for a Java project:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">1.0.0</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">project-dev-environment</span>
+<span class="na">projects</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">project-name-here</span>
+    <span class="na">source</span><span class="pi">:</span>
+      <span class="na">type</span><span class="pi">:</span> <span class="s">git</span>
+      <span class="na">location</span><span class="pi">:</span> <span class="s1">'</span><span class="s">GITHUB</span><span class="nv"> </span><span class="s">REPOSITORY</span><span class="nv"> </span><span class="s">URL</span><span class="nv"> </span><span class="s">HERE'</span>
+<span class="na">components</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">type</span><span class="pi">:</span> <span class="s">chePlugin</span>
+    <span class="na">id</span><span class="pi">:</span> <span class="s">redhat/java/latest</span>
+</code></pre></div></div>
+
+<p>This devfile defines the project name and source location, as well as the Java plug-in. Many more <a href="https://www.eclipse.org/che/docs/che-7/end-user-guide/authoring-devfiles-version-1/#adding-components-to-a-devfile_che">components</a> can be added in a devfile to fine-tune the development environment for your specific project.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+<p>After you have completed the steps in this blog post, creating a new pull request will trigger the Try in Web IDE GitHub action and create a comment, status check, or both, depending on how you’ve configured the action inputs. With a Red Hat account, you can now try pull requests in a web-based IDE with the click of a link.</p>]]></content><author><name>David Kwon</name></author><summary type="html"><![CDATA[How to integrate the Try in Web IDE GitHub action to your GitHhub repository, making it easier for collaborators to test pull requests in Red Hat CodeReady Workspaces.]]></summary></entry><entry><title type="html">Devfile v2 and the DevWorkspace Operator - Part 1</title><link href="https://che.eclipseprojects.io/2021/10/12/@mario.loriedo-devfile-v2-and-the-devworkspace-operator-p1.html" rel="alternate" type="text/html" title="Devfile v2 and the DevWorkspace Operator - Part 1" /><published>2021-10-12T00:00:00+00:00</published><updated>2021-10-12T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2021/10/12/@mario.loriedo/devfile-v2-and-the-devworkspace-operator-p1</id><content type="html" xml:base="https://che.eclipseprojects.io/2021/10/12/@mario.loriedo-devfile-v2-and-the-devworkspace-operator-p1.html"><![CDATA[<p><img src="https://che.eclipseprojects.io//assets/img/devfile-v2-and-the-devworkspace-operator-part1/che-workspace-engines.png" alt="Locally trusted certs" /></p>
+
+<p>With version <a href="https://github.com/eclipse/che/releases/tag/7.28.0">7.28 of Che</a> we have introduced a new workspace engine, <a href="https://github.com/devfile/devworkspace-operator">the DevWorkspace Operator</a>, that supports v2 of the Devfile specification. Although the default engine is still the che-server we plan to replace it with the DevWorkspace in the next few months.</p>
+
+<p>Switching to the DevWorkspace engine has some important consequences. Notably on the authentication subsystem that will be lighter and more flexible, on the workspaces network managed by a central gateway powered by <a href="https://github.com/traefik/traefik">Traefik</a> and simpler configuration options for Che administrators.</p>
+
+<p>This is the first of a series of three articles reviewing the changes introduced with the DevWorkspace. Here we will discuss the changes from the point of view of a Che user. The second part will be about the point of view of a Che administrator. The last part will be dedicated to the DevWorkspace Operator.</p>
+
+<h2 id="how-to-enable-the-devworkspace-operator">How to enable the DevWorkspace Operator</h2>
+<p>Che default workspace engine is the che-server. The DevWorkspace engine needs to be explicitly enabled. The following <a href="https://github.com/che-incubator/chectl">chectl</a> command deploys Che on OpenShift configured with the DevWorkspace Operator as workspace engine:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>chectl server:deploy <span class="nt">-p</span> openshift <span class="se">\</span>
+                     <span class="nt">--workspace-engine</span><span class="o">=</span>dev-workspace
+</code></pre></div></div>
+
+<p>The command above works for other Kubernetes distributions too (<code class="language-plaintext highlighter-rouge">-p openshift</code> should be replaced) but, after chectl has completed, the CheCluster CustomResource requires a patch:</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># For vanilla Kubernetes only</span>
+kubectl patch checluster/eclipse-che <span class="nt">--type</span><span class="o">=</span>merge <span class="nt">-n</span> eclipse-che <span class="se">\ </span>
+           <span class="nt">--patch</span> <span class="s1">'{"spec": {"server": { "customCheProperties": {"CHE_INFRA_KUBERNETES_ENABLE__UNSUPPORTED__K8S": "true"}}}}'</span> 
+</code></pre></div></div>
+
+<h2 id="changes-from-a-che-user-perspective">Changes from a Che user perspective</h2>
+
+<h3 id="new-devfile-spec-v21">New Devfile spec (v2.1)</h3>
+
+<p>Here is an example of v2.1 Devfile:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">schemaVersion</span><span class="pi">:</span> <span class="s">2.1.0</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">python-hello-world</span>
+<span class="na">attributes</span><span class="pi">:</span>
+  <span class="na">che-theia.eclipse.org/sidecar-policy</span><span class="pi">:</span> <span class="s">USE_DEV_CONTAINER</span>
+<span class="na">components</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">python</span>
+    <span class="na">container</span><span class="pi">:</span>
+      <span class="na">image</span><span class="pi">:</span> <span class="s">quay.io/devfile/base-developer-image:ubi8-7bd4fe3</span>
+      <span class="na">volumeMounts</span><span class="pi">:</span>
+        <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">venv</span>
+          <span class="na">path</span><span class="pi">:</span> <span class="s">/home/user/.venv</span>
+      <span class="na">memoryLimit</span><span class="pi">:</span> <span class="s">512Mi</span>
+      <span class="na">mountSources</span><span class="pi">:</span> <span class="no">true</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">venv</span>
+    <span class="na">volume</span><span class="pi">:</span>
+      <span class="na">size</span><span class="pi">:</span> <span class="s">1G</span>
+</code></pre></div></div>
+
+<p>The Devfile specification has gone through the release of v2. Here are a few notable changes:</p>
+<ul>
+  <li>It is compatible with the specification of a Kubernetes API. The DevWorkspace CRD is an extension of the Kubernetes API and it’s generated from the Devfile specification.</li>
+  <li>It removes <a href="https://github.com/eclipse/che/issues/18669">chePlugin and cheEditor component types</a>.</li>
+  <li>It introduces the volume component type.</li>
+  <li>Events and parent are two new top level devfile properties.</li>
+  <li>Besides Che it’s used by the OpenShift Developer Console, <code class="language-plaintext highlighter-rouge">odo</code> and the <a href="https://github.com/devfile/devfile-docker-plugin">Devfile Docker plugin</a>.</li>
+</ul>
+
+<p>The documentation for Devfile v2.1 is <a href="https://devfile.io/docs/devfile/2.1.0/user-guide/index.html">https://devfile.io/docs/devfile/2.1.0/</a>. A <a href="https://devfile.io/docs/devfile/2.1.0/user-guide/migrating-to-devfile-v2.html">migration guide from v1 to v2 of the specification</a> is included.</p>
+
+<h3 id="a-new-way-to-specify-the-editor-and-its-plugins">A new way to specify the editor and its plugins</h3>
+<p>As mentioned above, version 2 of the Devfile, doesn’t include cheEditor and chePlugins component types anymore.</p>
+
+<p>The recommended way to specify the editor of a workspace is to include the file <code class="language-plaintext highlighter-rouge">.che/che-editor.yaml</code> at the root of the workspace git repository:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">id</span><span class="pi">:</span> <span class="s">eclipse/che-theia/latest</span>          <span class="c1"># mandatory</span>
+<span class="na">registryUrl</span><span class="pi">:</span> <span class="s">https://my-registry.com</span>  <span class="c1"># optional</span>
+<span class="na">override</span><span class="pi">:</span>                             <span class="c1"># optional</span>
+  <span class="na">containers</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">theia-ide</span>
+      <span class="na">memoryLimit</span><span class="pi">:</span> <span class="s">1280Mi</span>
+</code></pre></div></div>
+
+<p>The recommended way to specify a che-theia plugin in a workspace is to include the file <code class="language-plaintext highlighter-rouge">.vscode/extensions.json</code> at the root of the workspace git repository:</p>
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+    </span><span class="nl">"recommendations"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">
+      </span><span class="s2">"ms-python.python"</span><span class="w">
+    </span><span class="p">]</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>It is also possible to define a Che editor and its plugins inline in Devfile attributes, but that’s recommended only when it is not possible to colocate the devile with the source code. More informations about IDEs plugins with v2 of the Devfile can be found <a href="https://che.eclipseprojects.io/2021/06/23/@florent.benoit-devfile-v2-and-ide-plug-ins.html">in this blog post</a> and at <a href="https://github.com/eclipse/che/issues/18669">https://github.com/eclipse/che/issues/18669</a>.</p>
+
+<h3 id="the-devfile-should-live-at-the-root-of-the-git-repo-not-in-a-registry">The Devfile should live at the root of the git repo, not in a registry</h3>
+<p>The recommended place to publish the Devfile is within the project source code. Along with the files that we have just seen above to specify che-theia plugins and the editor:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  |--- devfile.yaml
+  |___ .che
+         |___ che-editor.yaml
+         |___ che-theia-plugins.yaml
+  |___ .vscode
+         |___ extensions.json
+</code></pre></div></div>
+
+<p>Having the Devfile at the root of a repository makes it possible to use a simple factory link to the repository to start the workspace. For example <a href="https://workspaces.openshift.com/#https://github.com/eclipse/che-docs">workspaces.openshift.com/#https://github.com/eclipse/che-docs</a> is a factory link: when a user click on it, a workspace defined by the Devfile in the repo <a href="https://github.com/eclipse/che-docs">github.com/eclipse/che-docs</a> will be started on the public Che instance hosted by Red Hat at workspaces.openshift.com.</p>
+
+<p>Recommending to colocate and evolve a v2 Devfile with the source code has two consequences:</p>
+<ul>
+  <li>the <code class="language-plaintext highlighter-rouge">project</code> section of a Devfile can be omitted: it’s implicitly set to the git repo where the Devfile lives</li>
+  <li>Che samples will include a Devfile at their root (those Devfiles used to be published in the Devfile registry)</li>
+</ul>
+
+<h3 id="only-one-running-workspace-per-user">Only one running workspace per user</h3>
+<p>A user cannot have more than one running workspace at a time. This limitation is related to the persistent volume strategy (“common”) that is used by Che. The same Volume is mounted by every workspace of the same user. This is implemented using Pods <code class="language-plaintext highlighter-rouge">volumeMounts.subPath</code> property and guarantees that the number of Volumes mounted by Che matches the number of users.</p>
+
+<h2 id="current-limitations-and-timeline">Current limitations and Timeline</h2>
+
+<p>Although most of the work has been completed, Che with the DevWorkspace enabled is not ready for production yet. Here is a list of open issues:</p>
+<ul>
+  <li><a href="https://github.com/eclipse/che/issues/20501">An admin should be able to specify secrets or config maps that need to be provisioned on each user’s namespace #20501</a></li>
+  <li><a href="https://github.com/eclipse/che/issues/20528">Support custom certificates for git hosts for devworkspaces #20528</a></li>
+  <li><a href="https://github.com/devfile/devworkspace-operator/issues/614">Support Pod tolerations for DevWorkspace Pods devfile/devworkspace-operator#614</a></li>
+  <li><a href="https://github.com/eclipse/che/issues/20362">Che with Devworkspaces should be able to use Dex as identity provider on OIDC enabled k8s #20362</a></li>
+  <li><a href="https://github.com/eclipse/che/issues/19341">Create v2 devfiles for Getting Started samples</a></li>
+  <li><a href="https://github.com/eclipse/che/issues/20596">Support overriding Che Theia plugins preferences and sidecar through .che/che-theia-plugins.yaml</a></li>
+  <li><a href="https://github.com/eclipse/che/issues/20460">Adapt Che-Theia Activity Tracker extension to DevWorkspace mode (idling)</a></li>
+</ul>
+
+<p>The complete list of issues and the due date can be tracked on the <a href="https://github.com/eclipse/che/milestone/140">GitHub milestone</a>.</p>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>In this post we have described how to enable the DevWorkspace engine and reviewed the changes from the point of view of a user of Che.</p>
+
+<p>In the second part of this series we are going to look at the changes from an administrator point of view:</p>
+<ul>
+  <li>It’s possible to deploy only one Che instance per Kubernetes cluster</li>
+  <li>Devfiles are not in the registry anymore</li>
+  <li>Keycloak is not required anymore and Che users have to be Kubernetes users</li>
+  <li>Simpler configuration: namespace, persistent volumes, network</li>
+  <li>Use of external routes not supported</li>
+  <li>Metrics</li>
+</ul>
+
+<p>The third part of this series will be about the DevWorkspace Operator:</p>
+<ul>
+  <li>Extending the Kubernetes API to provision Development Environments</li>
+  <li>Relationship between the DevWorkspace CRD and the Devfile v2</li>
+  <li>Relationship between the DevWorkspace Operator and the OpenShift WebTerminal</li>
+  <li>Comparison between the DevWorkspace controller and the che-server:
+    <ul>
+      <li>single tenant</li>
+      <li>no knowledge of IDEs and their extensions</li>
+    </ul>
+  </li>
+  <li>DevWorkspaceTemplate and Plugins</li>
+  <li>Auto-mounting Secrets and ConfigMaps</li>
+</ul>]]></content><author><name>Mario Loriedo</name></author><summary type="html"><![CDATA[How to enable the DevWorkspace engine and what it means from a user point of view]]></summary></entry><entry><title type="html">Backup and Restore of an Eclipse Che Installation</title><link href="https://che.eclipseprojects.io/2021/07/08/@mmorhun-backup-restore-che-installation.html" rel="alternate" type="text/html" title="Backup and Restore of an Eclipse Che Installation" /><published>2021-07-08T00:00:00+00:00</published><updated>2021-07-08T00:00:00+00:00</updated><id>https://che.eclipseprojects.io/2021/07/08/@mmorhun/backup-restore-che-installation</id><content type="html" xml:base="https://che.eclipseprojects.io/2021/07/08/@mmorhun-backup-restore-che-installation.html"><![CDATA[<h3 id="introduction">Introduction</h3>
+
+<p>Any application that runs in production should be backed up regularly.
+Even if the application runs inside a Kubernetes or Openshift cluster.
+To back up an application in a Kubernetes cluster, a user should back up all the resources and definitions that the application uses.
+It could be pretty easy in case when the application is, for example, a deployment with attached volume.
+But what if the application has a lot of objects to back up?
+In such case the task becomes more complicated and requires an understanding on how the components of the application work and interact with each other.
+Or… just back up the whole cluster, however, such approach has a lot of overhead.</p>
+
+<p>To address this problem in <a href="https://www.eclipse.org/che/">Eclipse Che</a>, the backup and restore feature was implemented.
+With it, an admin doesn’t have to be aware of Eclipse Che internals in order to create a backup or do recovery of Che.
+Eclipse Che (Eclipse Che operator to be more precise) can create backups and restore the installation even if a Che installation was completely deleted!
+This works only if Che has been installed using the operator (<code class="language-plaintext highlighter-rouge">chectl server:deploy</code> using installers <code class="language-plaintext highlighter-rouge">olm</code> or <code class="language-plaintext highlighter-rouge">operator</code>).</p>
+
+<p>Let me show you how easy the process of backing up and restoring Che is now.
+But first, let’s talk about backup servers a bit.</p>
+
+<h3 id="internal-vs-external-backup-server">Internal vs external backup server</h3>
+
+<p>When all data for backup is gathered into a snapshot, then it is encrypted and sent to a backup server.
+The backup server should be set up beforehand and be accessible from within the cluster.
+This step requires choosing the backup server type and manual configuration of it.</p>
+
+<p>To make life a bit easier, Eclipse Che can automatically set up and configure a backup server in the same cluster.
+Such approach requires no additional configuration as everything is automated, but the main downside of it is that backups are stored in the same cluster and even the same namespace as Eclipse Che.</p>
+
+<p>Note, for production use, it is recommended to set up a backup server outside of the cluster.</p>
+
+<h3 id="how-to-back-up-and-restore-che-using-chectl">How to back up and restore Che using chectl</h3>
+
+<h4 id="creating-backups">Creating backups</h4>
+
+<p>To create a backup of Eclipse Che with <a href="https://github.com/che-incubator/chectl#chectl">chectl</a> one should run:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>chectl server:backup
+</code></pre></div></div>
+<p>The command above will create a backup snapshot and send it to the configured backup server.
+But if no backup server is configured, Che operator will deploy internal backup server and configure itself to use the server by default.</p>
+
+<p>To use an external backup server (or switch to another one), its URL and backups repository password should be provided, for example:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>checlt server:backup <span class="nt">-r</span> rest:my-backups.domain.net:1234/che-backups <span class="nt">-p</span> encryption-password
+</code></pre></div></div>
+<p>After execution of the command above, a new backup will be created and sent to the specified backup server.
+Also, it will configure Che to use that backup server by default, so for the next backups just <code class="language-plaintext highlighter-rouge">chectl server:backup</code> will be enough.</p>
+
+<p>Note, instead of using <code class="language-plaintext highlighter-rouge">-p</code> flag, it is possible to set <code class="language-plaintext highlighter-rouge">BACKUP_REPOSITORY_PASSWORD</code> environment variable.
+Note, losing repository password means losing all the data stored in it as the password is used to decrypt the repository content.</p>
+
+<h4 id="supported-types-of-backup-servers">Supported types of backup servers</h4>
+
+<p>Eclipse Che uses an external tool called <a href="https://restic.net/">restic</a> to manage backup snapshots.
+<code class="language-plaintext highlighter-rouge">restic</code> stores backup snapshots in a backup repository, where each snapshot is identified by a hash.
+It also can connect to different kinds of servers that provide data storage capabilities.</p>
+
+<p>As of now, Eclipse Che supports the following types of backup servers:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">REST</code></li>
+  <li><code class="language-plaintext highlighter-rouge">AWS S3</code> and API compatible</li>
+  <li><code class="language-plaintext highlighter-rouge">SFTP</code></li>
+</ul>
+
+<p><a href="https://github.com/restic/rest-server#rest-server"><code class="language-plaintext highlighter-rouge">REST</code> backup server</a> is a dedicated server that’s specially designed to be used with <code class="language-plaintext highlighter-rouge">restic</code>.
+It supports optional authentication by username and password:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">export </span><span class="nv">REST_SERVER_USERNAME</span><span class="o">=</span>user
+<span class="nv">$ </span><span class="nb">export </span><span class="nv">REST_SERVER_PASSWORD</span><span class="o">=</span>password
+<span class="nv">$ </span>chectl server:backup <span class="nt">-r</span> rest:http://backups.my-domain.net:1234/che <span class="nt">-p</span> encryption-password
+</code></pre></div></div>
+<p>Internal backup server is of type <code class="language-plaintext highlighter-rouge">REST</code>.</p>
+
+<p><code class="language-plaintext highlighter-rouge">AWS S3</code> storage and all API compatible implementations can be used as a backup server.
+Requires setting <code class="language-plaintext highlighter-rouge">AWS_ACCESS_KEY_ID</code> and <code class="language-plaintext highlighter-rouge">AWS_SECRET_ACCESS_KEY</code> environment variables.
+Example:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">export </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span>BZK8W5<span class="k">****</span>
+<span class="nv">$ </span><span class="nb">export </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span>JKTa9TKoL<span class="k">*****</span>dH6U+kP
+<span class="nv">$ </span>chectl server:backup <span class="nt">-r</span> s3:s3.amazonaws.com/che-bucket <span class="nt">-p</span> password
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">SFTP</code> storage.
+It requires providing SSH key for passwordless login.
+That could be done by providing the path to the file with the SSH key or the key itself (choose one):</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span><span class="nb">export </span><span class="nv">SSH_KEY_FILE</span><span class="o">=</span>/home/user/.ssh/sftp.key
+<span class="nv">$ </span><span class="c"># export SSH_KEY=-----BEGIN RSA PRIVATE KEY-----*****</span>
+<span class="nv">$ </span>chectl server:backup sftp:user@my-host.net:1234//srv/static/che-backups
+</code></pre></div></div>
+
+<h4 id="restoring-che-installation-form-a-backup">Restoring Che installation form a backup</h4>
+
+<p>To restore Eclipse Che installation, simply run:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>chectl server:restore
+</code></pre></div></div>
+<p>It will download the latest backup snapshot from the configured backup server and restore all Eclipse Che data from it.
+If needed, it will even deploy a new Che cluster and apply data from the backup snapshot.</p>
+
+<p>But what if we created a dozen of backups and want to restore not from the latest backup available on the backup server, but an older one?
+It is possible!
+Just add backup snapshot ID with <code class="language-plaintext highlighter-rouge">-f</code>  flag to the restore command:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>chectl server:restore <span class="nt">-s</span> f801da5c
+</code></pre></div></div>
+<p>Where to get snapshot IDs?
+There are two ways.
+Snapshot ID is printed when a backup command executed:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Backup snapshot ID: f801da5c
+</code></pre></div></div>
+<p>Another way is to use <code class="language-plaintext highlighter-rouge">restic</code> tool:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>restic <span class="nt">-r</span> rest:my-backups.domain.net:1234/che-backups snapshots
+</code></pre></div></div>
+
+<p>Also, it is possible to use differnet backup server to restore from.
+Just provide a backup server URL and repository password with needed credentials.
+For example:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>chectl server:restore <span class="nt">-r</span> sftp:cheuser@my-sftp.domain.net:/srv/data/che-backups/ <span class="nt">-p</span> encryption-password <span class="nt">--ssh-key-file</span><span class="o">=</span>~/.ssh/che-sftp.key
+</code></pre></div></div>
+<p>Note, that the command above will change default backup server, so the next backup will be sent there unless another configuration provided.</p>
+
+<h3 id="how-to-back-up-and-restore-che-via-custom-resources-objects">How to back up and restore Che via custom resources objects</h3>
+
+<h4 id="concept">Concept</h4>
+
+<p>If someone doesn’t want to use <code class="language-plaintext highlighter-rouge">chectl</code> or want to have more control over the backup and restore process, it is possible to control backup and restore processes by directly managing backup related custom resources (CRs).
+There are 3 types of CRs:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">CheBackupServerConfiguration</code> that holds information about a backup server and references to the secrets with credentials.</li>
+  <li><code class="language-plaintext highlighter-rouge">CheClusterBackup</code> requests a new backup and also points to an instance of <code class="language-plaintext highlighter-rouge">CheBackupServerConfiguration</code> to where the backup snapshot should be sent.</li>
+  <li><code class="language-plaintext highlighter-rouge">CheClusterRestore</code> requests a new restore and holds reference to <code class="language-plaintext highlighter-rouge">CheBackupServerConfiguration</code> from where the backup snapshot should be downloaded.</li>
+</ul>
+
+<p>Please note, that only creation of <code class="language-plaintext highlighter-rouge">CheClusterBackup</code> and <code class="language-plaintext highlighter-rouge">CheClusterRestore</code> instances triggers backup and restore processes correspondingly.
+Any editing of these resources has no effect.</p>
+
+<p>Under the hood, <code class="language-plaintext highlighter-rouge">chectl</code> deals with the described CRs in order to create a backup or trigger a restore process.</p>
+
+<h4 id="configuring-a-backup-server">Configuring a backup server</h4>
+
+<p>Before backing up or restoring Che installation, at least one backup server configuration should be created.
+Also, all secrets that are referenced from the CR must exist.
+Then, the configuration might be referenced from backup and/or restore CR.</p>
+
+<p>Example backup server configuration for AWS S3 storage:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">org.eclipse.che/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">CheBackupServerConfiguration</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">backup-server-configuration</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">awss3</span><span class="pi">:</span>
+    <span class="na">repositoryPath</span><span class="pi">:</span> <span class="s">che-bucket</span>
+    <span class="na">repositoryPasswordSecretRef</span><span class="pi">:</span> <span class="s">aws-backup-encryption-password-secret</span>
+    <span class="na">awsAccessKeySecretRef</span><span class="pi">:</span> <span class="s">aws-user-credentials-secret</span>
+</code></pre></div></div>
+<p>Both secrets <code class="language-plaintext highlighter-rouge">aws-backup-encryption-password-secret</code> with <code class="language-plaintext highlighter-rouge">repo-password</code> key and <code class="language-plaintext highlighter-rouge">aws-user-credentials-secret</code> with <code class="language-plaintext highlighter-rouge">awsAccessKeyId</code> and <code class="language-plaintext highlighter-rouge">awsSecretAccessKey</code> keys must exist.</p>
+
+<p>As it was described above, under <code class="language-plaintext highlighter-rouge">spec</code> section only <code class="language-plaintext highlighter-rouge">rest</code>, <code class="language-plaintext highlighter-rouge">awss3</code> and <code class="language-plaintext highlighter-rouge">sftp</code> is allowed.
+CR definitions have self-explanatory fields and it will be easy to create a backup server configuration.
+But note, that each subsection mutually excludes the others.
+However, it is allowed to create as many backup server configurations as needed.</p>
+
+<h4 id="backing-up">Backing up</h4>
+
+<p>To create a new backup, a new CR of <code class="language-plaintext highlighter-rouge">CheClusterBackup</code> type should be created:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">org.eclipse.che/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">CheClusterBackup</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">eclipse-che-backup</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">backupServerConfigRef</span><span class="pi">:</span> <span class="s">backup-server-configuration</span>
+</code></pre></div></div>
+<p>Right after the CR creation a new backup process will be started.
+To monitor backup process state, one should look at <code class="language-plaintext highlighter-rouge">status</code> section of the created CR:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>kubectl get CheClusterBackup eclipse-che-backup <span class="nt">-n</span> eclipse-che <span class="nt">-o</span> yaml | <span class="nb">grep</span> <span class="nt">-A</span> 5 ^status
+</code></pre></div></div>
+<p>The output of the command above looks like:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">status</span><span class="pi">:</span>
+  <span class="na">message</span><span class="pi">:</span> <span class="s1">'</span><span class="s">Backup</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">progress.</span><span class="nv"> </span><span class="s">Start</span><span class="nv"> </span><span class="s">time:</span><span class="nv"> </span><span class="s">&lt;timestamp&gt;'</span>
+  <span class="na">stage</span><span class="pi">:</span> <span class="s">Collecting Che installation data</span>
+  <span class="na">state</span><span class="pi">:</span> <span class="s">InProgress</span>
+</code></pre></div></div>
+<p>where</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">message</code> shows overall human readable status or an error message.</li>
+  <li><code class="language-plaintext highlighter-rouge">stage</code> displays human readable current phase of backup process</li>
+  <li><code class="language-plaintext highlighter-rouge">state</code> indicates the overall state of the backup. Only <code class="language-plaintext highlighter-rouge">InProgress</code>, <code class="language-plaintext highlighter-rouge">Succeeded</code> and <code class="language-plaintext highlighter-rouge">Failed</code> allowed.</li>
+</ul>
+
+<p>When the process finishes successfully, the <code class="language-plaintext highlighter-rouge">status</code> section will contain <code class="language-plaintext highlighter-rouge">snapshotId</code> field that could be used when restoring.
+The CR might be deleted after backup is finished.</p>
+
+<p>If one need to request internal backup server and create a backup, <code class="language-plaintext highlighter-rouge">CheClusterBackup</code> with <code class="language-plaintext highlighter-rouge">useInternalBackupServer</code> property set to <code class="language-plaintext highlighter-rouge">true</code> should be created:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">org.eclipse.che/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">CheClusterBackup</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">eclipse-che-backup</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">useInternalBackupServer</span><span class="pi">:</span> <span class="no">true</span>
+</code></pre></div></div>
+<p>Note, it will create an instance of <code class="language-plaintext highlighter-rouge">CheBackupServerConfiguration</code> and corresponding secrets automatically.</p>
+
+<h4 id="restoring">Restoring</h4>
+
+<p>To restore from a backup snapshot, a new CR of <code class="language-plaintext highlighter-rouge">CheClusterRestore</code> type should be created:</p>
+<div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">org.eclipse.che/v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">CheClusterRestore</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">eclipse-che-restore</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">backupServerConfigRef</span><span class="pi">:</span> <span class="s">backup-server-configuration</span>
+</code></pre></div></div>
+
+<p>By default the latest snapshot is taken.
+However, it is possible to restore from a specific snapshot by adding <code class="language-plaintext highlighter-rouge">snapshotId</code> field under <code class="language-plaintext highlighter-rouge">spec</code> section.</p>
+
+<p>To monitor the restore state, one may read status of the corresponding CR:</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>kubectl get CheClusterRestore eclipse-che-restore <span class="nt">-n</span> eclipse-che <span class="nt">-o</span> yaml | <span class="nb">grep</span> <span class="nt">-A</span> 5 ^status
+</code></pre></div></div>
+<p>Once the restore finishes, the CR can be deleted.</p>
+
+<h3 id="limitations">Limitations</h3>
+
+<p>As of now, there are two major limitations with backup and restore:</p>
+<ul>
+  <li>Backing up of user’s projects inside workspaces hasn’t been implemented yet. So, all not committed changes will not be restored.</li>
+  <li>Backup snapshots are bind to the specific cluster, so it is not possible to restore snapshot on another cluster in general case. This is because Che binds to some cluster ID’s.</li>
+</ul>
+
+<p>Other than that, back up and restore is a user friendly and straightforward process now.</p>]]></content><author><name>Mykola Morhun</name></author><summary type="html"><![CDATA[How to create backups and do recovery of Eclipse Che]]></summary></entry></feed>
